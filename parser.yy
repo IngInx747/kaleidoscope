@@ -46,7 +46,7 @@
 %token <str> VOID "void"
 
 %token DEF "def"
-%token EXT "extern"
+%token EXTERN "extern"
 
 %token IF "if"
 %token ELSE "else"
@@ -65,17 +65,183 @@
 %token SEMICOLON ";"
 %token DOT "."
 
-%type <progType> primary
+%type <ProgType> program
+
+%left "=";
+%left "||";
+%left "&&";
+%left "==";
+%left ">" "<";
+%left "+" "-";
+%left "*" "/";
+
+%start program;
 
 %%
 
-%start primary;
-
-expression:
+/* <program> -> <extern>* <function>+ */
+program: extern_list func_list
   {
     ;
   }
-  | '(' expression ')'
+  ;
+
+/* <extern>* */
+extern_list: /* empty */
+  {
+    ;
+  }
+  | extern extern_list
+  {
+    ;
+  }
+  ;
+
+/* <function>+ */
+func_list: function
+  {
+    ;
+  }
+  | function func_list
+  {
+    ;
+  }
+  ;
+
+/* <extern> -> extern <type> <globid> ( <tdecls>? ) ; */
+extern: "extern" type globid '(' ')' ';'
+  {
+    ;
+  }
+  | "extern" type globid '(' tdecls ')' ';'
+  {
+    ;
+  }
+  ;
+
+/* <function> -> def <type> <globid> ( <vdecls>? ) <block> */
+function: "def" type globid '(' ')' block
+  {
+    ;
+  }
+  | "def" type globid '(' vdecls ')' block
+  {
+    ;
+  }
+  ;
+
+/* <block> -> { statement* } */
+block: '{' stmt_list '}'
+  {
+    ;
+  }
+  ;
+
+/* statement* */
+stmt_list: /* empty */
+  {
+    ;
+  }
+  | statement stmt_list
+  {
+    ;
+  }
+  ;
+
+/* <statement> */
+statement: expression ';'
+  {
+    ;
+  }
+  | "return" ';'
+  {
+    ;
+  }
+  | "return" expression ';'
+  {
+    ;
+  }
+  | vdecl '=' expression ';'
+  {
+    ;
+  }
+  | "while" '(' expression ')' statement
+  {
+    ;
+  }
+  | "if" '(' expression ')' statement
+  {
+    ;
+  }
+  | "if" '(' expression ')' statement "else" statement
+  {
+    ;
+  }
+  | block
+  {
+    ;
+  }
+  ;
+
+/* <expr_list> -> <expression> | <expression> , <expr_list> */
+expr_list: expression
+  {
+    ;
+  }
+  | expression ',' expr_list
+  {
+    ;
+  }
+  ;
+
+/* <expression> */
+expression: '(' expression ')'
+  {
+    ;
+  }
+  | globid '(' ')'
+  {
+    ;
+  }
+  | globid '(' expr_list ')'
+  {
+    ;
+  }
+  | binop
+  {
+    ;
+  }
+  | unrop
+  {
+    ;
+  }
+  | variable
+  {
+    ;
+  }
+  | NUMBER
+  {
+    ;
+  }
+  | STRING
+  {
+    ;
+  }
+  ;
+
+/* <unary operation> */
+unrop: '!' expression
+  {
+    ;
+  }
+  | '-' expression
+  {
+    ;
+  }
+  ;
+
+/* <binary operation> */
+binop: expression '=' expression
   {
     ;
   }
@@ -92,6 +258,90 @@ expression:
     ;
   }
   | expression '/' expression
+  {
+    ;
+  }
+  | expression '<' expression
+  {
+    ;
+  }
+  | expression '>' expression
+  {
+    ;
+  }
+  | expression "==" expression
+  {
+    ;
+  }
+  | expression "&&" expression
+  {
+    ;
+  }
+  | expression "||" expression
+  {
+    ;
+  }
+  ;
+
+variable: '$' IDENTITY
+  {
+    ;
+  }
+  ;
+
+globid: IDENTITY
+  {
+    ;
+  }
+  ;
+
+type: "int"
+  {
+    ;
+  }
+  | "float"
+  {
+    ;
+  }
+  | "str"
+  {
+    ;
+  }
+  | "void"
+  {
+    ;
+  }
+  | "ref" type
+  {
+    ;
+  }
+  | "noalias" "ref" type
+  {
+    ;
+  }
+  ;
+
+tdecls: type
+  {
+    ;
+  }
+  | type ',' tdecls
+  {
+    ;
+  }
+  ;
+
+vdecls: vdecl
+  {
+    ;
+  }
+  | vdecl ',' vdecls
+  {
+    ;
+  }
+  ;
+
+vdecl: type variable
   {
     ;
   }
