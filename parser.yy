@@ -24,53 +24,36 @@
 
 %define api.token.prefix {}
 
-%token <str> IDENT
-%token <str> STR
-%token <str> NUM
+%token IDENTITY
+%token CONST_STRING
+%token CONST_INTEGER
+%token CONST_FLOAT
 
-%token <str> ASSIGN "="
-%token <str> EQ "=="
-%token <str> NEQ "!="
-%token <str> NOT "!"
-%token <str> MUL "*"
-%token <str> DIV "/"
-%token <str> ADD "+"
-%token <str> SUB "-"
-%token <str> GT ">"
-%token <str> LT "<"
-%token <str> OR "||"
-%token <str> AND "&&"
-
-%token <str> INT "int"
-%token <str> FLOAT "float"
-%token <str> VOID "void"
-
-%token DEF "def"
 %token EXTERN "extern"
-
+%token DEFINE "def"
 %token IF "if"
 %token ELSE "else"
-%token FOR "for"
 %token WHILE "while"
-%token RET "return"
+%token RETURN "return"
+%token NOALIAS "noalias"
 %token REF "ref"
-%token VAR "&"
 
-%token LPAREN "("
-%token RPAREN ")"
-%token LBRACE "{"
-%token RBRACE "}"
-%token COMMA ","
-%token COLON ":"
-%token SEMICOLON ";"
-%token DOT "."
+%token VOID "void"
+%token TYPE_STRING "str"
+%token TYPE_INTEGER "int"
+%token TYPE_FLOAT "float"
+
+%token ASSIGN "="
+%token EQ "=="
+%token OR "||"
+%token AND "&&"
 
 %type <ProgType> program
 
-%left "=";
-%left "||";
-%left "&&";
-%left "==";
+%left ASSIGN;
+%left OR;
+%left AND;
+%left EQ;
 %left ">" "<";
 %left "+" "-";
 %left "*" "/";
@@ -109,22 +92,22 @@ func_list: function
   ;
 
 /* <extern> -> extern <type> <globid> ( <tdecls>? ) ; */
-extern: "extern" type globid '(' ')' ';'
+extern: EXTERN type globid '(' ')' ';'
   {
     ;
   }
-  | "extern" type globid '(' tdecls ')' ';'
+  | EXTERN type globid '(' tdecls ')' ';'
   {
     ;
   }
   ;
 
 /* <function> -> def <type> <globid> ( <vdecls>? ) <block> */
-function: "def" type globid '(' ')' block
+function: DEFINE type globid '(' ')' block
   {
     ;
   }
-  | "def" type globid '(' vdecls ')' block
+  | DEFINE type globid '(' vdecls ')' block
   {
     ;
   }
@@ -153,27 +136,27 @@ statement: expression ';'
   {
     ;
   }
-  | "return" ';'
+  | RETURN ';'
   {
     ;
   }
-  | "return" expression ';'
+  | RETURN expression ';'
   {
     ;
   }
-  | vdecl '=' expression ';'
+  | vdecl ASSIGN expression ';'
   {
     ;
   }
-  | "while" '(' expression ')' statement
+  | WHILE '(' expression ')' statement
   {
     ;
   }
-  | "if" '(' expression ')' statement
+  | IF '(' expression ')' statement
   {
     ;
   }
-  | "if" '(' expression ')' statement "else" statement
+  | IF '(' expression ')' statement ELSE statement
   {
     ;
   }
@@ -219,11 +202,15 @@ expression: '(' expression ')'
   {
     ;
   }
-  | NUMBER
+  | CONST_INTEGER
   {
     ;
   }
-  | STRING
+  | CONST_FLOAT
+  {
+    ;
+  }
+  | CONST_STRING
   {
     ;
   }
@@ -241,7 +228,7 @@ unrop: '!' expression
   ;
 
 /* <binary operation> */
-binop: expression '=' expression
+binop: expression ASSIGN expression
   {
     ;
   }
@@ -269,15 +256,15 @@ binop: expression '=' expression
   {
     ;
   }
-  | expression "==" expression
+  | expression EQ expression
   {
     ;
   }
-  | expression "&&" expression
+  | expression AND expression
   {
     ;
   }
-  | expression "||" expression
+  | expression OR expression
   {
     ;
   }
@@ -295,27 +282,27 @@ globid: IDENTITY
   }
   ;
 
-type: "int"
+type: TYPE_INTEGER
   {
     ;
   }
-  | "float"
+  | TYPE_FLOAT
   {
     ;
   }
-  | "str"
+  | TYPE_STRING
   {
     ;
   }
-  | "void"
+  | VOID
   {
     ;
   }
-  | "ref" type
+  | REF type
   {
     ;
   }
-  | "noalias" "ref" type
+  | NOALIAS REF type
   {
     ;
   }
