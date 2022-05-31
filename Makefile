@@ -8,18 +8,22 @@ YFLAGS= -d
 LEX= flex
 LFLAGS=
 
-YGEN= parser.yy
+YGEN= kaleidoscope.yy
 YSRC= parser.cc
 YHEADER= parser.hh
 
-LGEN= lexer.ll
+LGEN= kaleidoscope.ll
 LSRC= lexer.cc
 
-SRCS= $(YSRC) $(LSRC) codegen.cc
-HEADERS= $(YHEADER) codegen.hh
+SRCS= $(YSRC) $(LSRC) \
+	codegen.cc
+
+HEADERS= $(YHEADER) \
+	codegen.hh
+
 OBJECTS= $(SRCS:.cc:.o)
 
-TARGET= kaleidoscope
+TARGET= kscc
 
 all: $(TARGET)
 
