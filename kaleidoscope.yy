@@ -156,5 +156,5 @@ expressions: expressions ',' expression
 void yyerror(const char *errmsg)
 {
   extern int yylineno;
-  fprintf(stderr, "%s near line %d\n", errmsg, yylineno);
+  fprintf(stderr, "%s at/near line %d\n", errmsg, yylineno);
 }

@@ -4,6 +4,8 @@
 %}
 
 %option noyywrap
+%option nounput
+%option noinput
 %option yylineno
 
 NUMBER          [0-9]+\.?|[0-9]*\.[0-9]+
