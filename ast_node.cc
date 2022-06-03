@@ -34,25 +34,25 @@ int function_definition_node::accept(visitor* visitor)
 }
 
 
-number_node* make_number_node(std::string& text)
+number_node* make_number_node(const char* text)
 {
     number_node* node = new number_node();
 
     if (node)
     {
-        std::swap(node->value, text);
+        node->value = text;
     }
 
     return node;
 }
 
-variable_node* make_variable_node(std::string& text)
+variable_node* make_variable_node(const char* text)
 {
     variable_node* node = new variable_node();
 
     if (node)
     {
-        std::swap(node->name, text);
+        node->name = text;
     }
 
     return node;
@@ -72,27 +72,27 @@ binary_expression_node* make_binary_expression_node(ast_node* lhs, ast_node* rhs
     return node;
 }
 
-call_function_node* make_call_function_node(std::string& text, std::vector<ast_node*>& nodes)
+call_function_node* make_call_function_node(const char* text, double_linked_list_node<ast_node>* nodes)
 {
     call_function_node* node = new call_function_node();
 
     if (node)
     {
-        std::swap(node->callee, text);
-        std::swap(node->arguments, nodes);
+        node->callee = text;
+        node->arguments = nodes;
     }
 
     return node;
 }
 
-function_declaration_node* make_function_declaration_node(std::string& text, std::vector<ast_node*>& nodes)
+function_declaration_node* make_function_declaration_node(const char* text, double_linked_list_node<ast_node>* nodes)
 {
     function_declaration_node* node = new function_declaration_node();
 
     if (node)
     {
-        std::swap(node->name, text);
-        std::swap(node->arguments, nodes);
+        node->name = text;
+        node->arguments = nodes;
     }
 
     return node;

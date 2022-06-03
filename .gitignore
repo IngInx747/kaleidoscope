@@ -1,0 +1,20 @@
+# Target
+kcc
+
+# Object
+*.o
+*.so
+*.a
+
+# Output
+*.txt
+*.json
+*.output
+
+# Generated
+*.gen.hh
+*.gen.cc
+stack.hh
+
+# Cached
+.vscode/**

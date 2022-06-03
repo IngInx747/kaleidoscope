@@ -1,8 +1,7 @@
 #ifndef KS_AST_NODE_HH
 #define KS_AST_NODE_HH
 
-#include <vector>
-#include <string>
+#include "utility.hh"
 
 
 class ast_node;
@@ -35,10 +34,16 @@ public:
     virtual int accept(visitor*);
 
     virtual ~number_node()
-    {}
+    {
+        if (value)
+        {
+            delete value;
+            value = nullptr;
+        }
+    }
 
 public:
-    std::string value;
+    const char* value;
 };
 
 
@@ -48,10 +53,16 @@ public:
     virtual int accept(visitor*);
 
     virtual ~variable_node()
-    {}
+    {
+        if (name)
+        {
+            delete name;
+            name = nullptr;
+        }
+    }
 
 public:
-    std::string name;
+    const char* name;
 };
 
 
@@ -88,14 +99,21 @@ public:
 
     virtual ~call_function_node()
     {
-        for (ast_node* node : arguments)
-            delete node;
-        arguments.clear();
+        if (callee)
+        {
+            delete callee;
+            callee = nullptr;
+        }
+        if (arguments)
+        {
+            deallocate(arguments);
+            arguments = nullptr;
+        }
     }
 
 public:
-    std::string callee; // the name of the function called
-    std::vector<ast_node*> arguments;
+    const char* callee {nullptr}; // the name of the function called
+    double_linked_list_node<ast_node>* arguments;
 };
 
 
@@ -106,14 +124,21 @@ public:
 
     virtual ~function_declaration_node()
     {
-        for (ast_node* node : arguments)
-            delete node;
-        arguments.clear();
+        if (name)
+        {
+            delete name;
+            name = nullptr;
+        }
+        if (arguments)
+        {
+            deallocate(arguments);
+            arguments = nullptr;
+        }
     }
 
 public:
-    std::string name; // function name
-    std::vector<ast_node*> arguments;
+    const char* name {nullptr}; // function name
+    double_linked_list_node<ast_node>* arguments;
 };
 
 
@@ -137,20 +162,20 @@ public:
     }
 
 public:
-    function_declaration_node* declaration;
-    ast_node* definition;
+    function_declaration_node* declaration {nullptr};
+    ast_node* definition {nullptr};
 };
 
 
-number_node* make_number_node(std::string&);
+number_node* make_number_node(const char*);
 
-variable_node* make_variable_node(std::string&);
+variable_node* make_variable_node(const char*);
 
 binary_expression_node* make_binary_expression_node(ast_node*, ast_node*, char);
 
-call_function_node* make_call_function_node(std::string&, std::vector<ast_node*>&);
+call_function_node* make_call_function_node(const char*, double_linked_list_node<ast_node>*);
 
-function_declaration_node* make_function_declaration_node(std::string&, std::vector<ast_node*>&);
+function_declaration_node* make_function_declaration_node(const char*, double_linked_list_node<ast_node>*);
 
 function_definition_node* make_function_definition_node(function_declaration_node*, ast_node*);
 

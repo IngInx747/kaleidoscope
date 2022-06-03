@@ -1,60 +1,47 @@
-%code top
+%define parse.error verbose
+%define api.token.prefix {}
+
+%code requires // *.hh
 {
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
-#include <vector>
-#include <string>
 #include "ast_node.hh"
 #include "visitor.hh"
-
-extern visitor* the_visitor;
-
-void yyerror (char const *);
-
-int yylex (void);
 }
 
-/* Generate the parser description file (parser.output). */
-%verbose
-
-/* Nice error messages with details. */
-%define parse.error detailed
-
-/* Enable run-time traces (yydebug). */
-%define parse.trace
-
-/* Generate YYSTYPE from the types used in %token and %type. */
-%define api.value.type variant
-
-%define api.token.prefix {}
+%code // *.cc
+{
+#include <cstdio>
+#include "kal.parser.gen.hh"
+void yyerror (char const *);
+int yylex ();
+}
 
 %token EXTERN "extern"
 %token DEFINE "def"
 
-%token <std::string> NUMBER
-%token <std::string> SYMBOL
-%token <std::string> ERROR
+%union {
+  ast_node* node;
+  const char* str;
+  function_declaration_node* decl;
+  double_linked_list_node<ast_node>* list;
+}
 
-%type <ast_node*> expression
-%type <function_declaration_node*> declaration
-%type <std::vector<ast_node*>> expressions
-%type <std::vector<ast_node*>> arguments
+%token <str> NUMBER
+%token <str> SYMBOL
+%token <str> ERROR
 
-%left "+" "-";
-%left "*" "/";
+%type <node> expression
+%type <decl> declaration
+%type <list> expressions
+%type <list> arguments
+
+%left '+' '-';
+%left '*' '/';
 
 %start program;
 
 %%
 
 program: program command
-  {
-    ;
-  }
-  | command
   {
     ;
   }
@@ -67,22 +54,22 @@ program: program command
 command: DEFINE declaration expression ';'
   {
     auto func = make_function_definition_node($2, $3);
-    func->accept(the_visitor);
+    func->accept(get_the_visitor());
     delete func;
   }
   | EXTERN declaration ';'
   {
-    ($2)->accept(the_visitor);
-    delete ($2);
+    $2->accept(get_the_visitor());
+    delete $2;
   }
   | expression ';'
   {
-    ($1)->accept(the_visitor);
-    delete ($1);
+    $1->accept(get_the_visitor());
+    delete $1;
   }
   | ERROR ';'
   {
-    yyerror(($1).c_str());
+    yyerror($1);
     yyerrok;
   }
   ;
@@ -95,15 +82,15 @@ declaration: SYMBOL '(' arguments ')'
 
 arguments: arguments ',' SYMBOL
   {
-    std::swap($$, $1); $$.push_back($3);
+    $$ = $1; append($$, make_double_linked_list_node(dynamic_cast<ast_node*>(make_variable_node($3))));
   }
   | SYMBOL
   {
-    $$.push_back($1);
+    $$ = make_double_linked_list_node(dynamic_cast<ast_node*>(make_variable_node($1)));
   }
   | /* empty */
   {
-    ;
+    $$ = nullptr;
   }
   ;
 
@@ -139,15 +126,15 @@ expression: expression '+' expression
 
 expressions: expressions ',' expression
   {
-    std::swap($$, $1); $$.push_back($3);
+    $$ = $1; append($$, make_double_linked_list_node($3));
   }
   | expression
   {
-    $$.push_back($1);
+    $$ = make_double_linked_list_node($1);
   }
   | /* empty */
   {
-    ;
+    $$ = nullptr;
   }
   ;
 
@@ -156,5 +143,6 @@ expressions: expressions ',' expression
 void yyerror(const char *errmsg)
 {
   extern int yylineno;
-  fprintf(stderr, "%s at/near line %d\n", errmsg, yylineno);
+  extern char* yytext;
+  fprintf(stderr, "[ERROR] Token \"%s\" at/near line %d: %s\n", yytext, yylineno, errmsg);
 }

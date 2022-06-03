@@ -1,0 +1,6 @@
+#ifndef KS_CODEGEN_VISITOR_HH
+#define KS_CODEGEN_VISITOR_HH
+
+
+
+#endif // KS_CODEGEN_VISITOR_HH

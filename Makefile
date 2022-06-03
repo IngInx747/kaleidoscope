@@ -9,21 +9,29 @@ LEX= flex
 LFLAGS=
 
 YGEN= kaleidoscope.yy
-YSRC= parser.cc
-YHEADER= parser.hh
+YSRC= kal.parser.gen.cc
+YHEADER= kal.parser.gen.hh
 
 LGEN= kaleidoscope.ll
-LSRC= lexer.cc
+LSRC= kal.lexer.gen.cc
 
 SRCS= $(YSRC) $(LSRC) \
-	codegen.cc
+	ast_node.cc \
+	visitor.cc \
+	utility.cc \
+	main.cc \
+	print_json_visitor.cc
 
 HEADERS= $(YHEADER) \
-	codegen.hh
+	ast_node.hh \
+	visitor.hh \
+	utility.cc \
+	main.hh \
+	print_json_visitor.hh
 
-OBJECTS= $(SRCS:.cc:.o)
+OBJECTS= $(SRCS:.cc=.o)
 
-TARGET= kscc
+TARGET= kcc
 
 all: $(TARGET)
 
@@ -33,7 +41,7 @@ $(YSRC): $(YGEN)
 $(LSRC): $(LGEN) $(YHEADER)
 	$(LEX) $(LFLAGS) -o $@ $<
 
-%.o: %.cc
+%.o: %.cc %.hh
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 $(TARGET): $(OBJECTS)
