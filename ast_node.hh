@@ -106,6 +106,8 @@ public:
         }
         if (arguments)
         {
+            for (double_linked_list_node<ast_node*>* child = first(arguments); child != nullptr; child = next(child))
+                delete child->data;
             deallocate(arguments);
             arguments = nullptr;
         }
@@ -113,7 +115,7 @@ public:
 
 public:
     const char* callee {nullptr}; // the name of the function called
-    double_linked_list_node<ast_node>* arguments;
+    double_linked_list_node<ast_node*>* arguments;
 };
 
 
@@ -131,6 +133,8 @@ public:
         }
         if (arguments)
         {
+            for (double_linked_list_node<ast_node*>* child = first(arguments); child != nullptr; child = next(child))
+                delete child->data;
             deallocate(arguments);
             arguments = nullptr;
         }
@@ -138,7 +142,7 @@ public:
 
 public:
     const char* name {nullptr}; // function name
-    double_linked_list_node<ast_node>* arguments;
+    double_linked_list_node<ast_node*>* arguments;
 };
 
 
@@ -173,9 +177,9 @@ variable_node* make_variable_node(const char*);
 
 binary_expression_node* make_binary_expression_node(ast_node*, ast_node*, char);
 
-call_function_node* make_call_function_node(const char*, double_linked_list_node<ast_node>*);
+call_function_node* make_call_function_node(const char*, double_linked_list_node<ast_node*>*);
 
-function_declaration_node* make_function_declaration_node(const char*, double_linked_list_node<ast_node>*);
+function_declaration_node* make_function_declaration_node(const char*, double_linked_list_node<ast_node*>*);
 
 function_definition_node* make_function_definition_node(function_declaration_node*, ast_node*);
 

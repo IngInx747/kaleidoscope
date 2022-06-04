@@ -10,7 +10,7 @@ struct double_linked_list_node
 {
     double_linked_list_node* prev {nullptr};
     double_linked_list_node* next {nullptr};
-    T* data {nullptr};
+    T data {};
 };
 
 template <class T>
@@ -48,11 +48,26 @@ double_linked_list_node<T>* last(double_linked_list_node<T>* node)
 }
 
 template <class T>
+double_linked_list_node<T>* make_double_linked_list_node(const T& data)
+{
+    double_linked_list_node<T>* node = new double_linked_list_node<T>();
+    node->data = data;
+    return node;
+}
+
+template <class T>
 void append(double_linked_list_node<T>* node, double_linked_list_node<T>* new_node)
 {
     node = last(node);
     node->next = new_node;
     new_node->prev = node;
+}
+
+template <class T>
+void append(double_linked_list_node<T>* node, const T& data)
+{
+    double_linked_list_node<T>* new_node = make_double_linked_list_node(data);
+    append(node, new_node);
 }
 
 template <class T>
@@ -64,17 +79,8 @@ void deallocate(double_linked_list_node<T>* node)
     {
         double_linked_list_node<T>* temp = node;
         node = next(node);
-        delete temp->data;
         delete temp;
     }
-}
-
-template <class T>
-double_linked_list_node<T>* make_double_linked_list_node(T* data)
-{
-    double_linked_list_node<T>* node = new double_linked_list_node<T>();
-    node->data = data;
-    return node;
 }
 
 

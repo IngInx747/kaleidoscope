@@ -72,7 +72,7 @@ binary_expression_node* make_binary_expression_node(ast_node* lhs, ast_node* rhs
     return node;
 }
 
-call_function_node* make_call_function_node(const char* text, double_linked_list_node<ast_node>* nodes)
+call_function_node* make_call_function_node(const char* text, double_linked_list_node<ast_node*>* nodes)
 {
     call_function_node* node = new call_function_node();
 
@@ -85,7 +85,7 @@ call_function_node* make_call_function_node(const char* text, double_linked_list
     return node;
 }
 
-function_declaration_node* make_function_declaration_node(const char* text, double_linked_list_node<ast_node>* nodes)
+function_declaration_node* make_function_declaration_node(const char* text, double_linked_list_node<ast_node*>* nodes)
 {
     function_declaration_node* node = new function_declaration_node();
 

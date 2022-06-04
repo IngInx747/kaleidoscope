@@ -22,7 +22,7 @@ int yylex ();
   ast_node* node;
   const char* str;
   function_declaration_node* decl;
-  double_linked_list_node<ast_node>* list;
+  double_linked_list_node<ast_node*>* list;
 }
 
 %token <str> NUMBER
@@ -82,7 +82,7 @@ declaration: SYMBOL '(' arguments ')'
 
 arguments: arguments ',' SYMBOL
   {
-    $$ = $1; append($$, make_double_linked_list_node(dynamic_cast<ast_node*>(make_variable_node($3))));
+    $$ = $1; append($$, dynamic_cast<ast_node*>(make_variable_node($3)));
   }
   | SYMBOL
   {
@@ -126,7 +126,7 @@ expression: expression '+' expression
 
 expressions: expressions ',' expression
   {
-    $$ = $1; append($$, make_double_linked_list_node($3));
+    $$ = $1; append($$, $3);
   }
   | expression
   {
