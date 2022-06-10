@@ -82,11 +82,11 @@ declaration: SYMBOL '(' arguments ')'
 
 arguments: arguments ',' SYMBOL
   {
-    $$ = $1; append($$, dynamic_cast<ast_node*>(make_variable_node($3)));
+    $$ = $1; append($$, make_variable_node($3));
   }
   | SYMBOL
   {
-    $$ = make_double_linked_list_node(dynamic_cast<ast_node*>(make_variable_node($1)));
+    $$ = make_double_linked_list_node<ast_node*>(make_variable_node($1));
   }
   | /* empty */
   {
@@ -130,7 +130,7 @@ expressions: expressions ',' expression
   }
   | expression
   {
-    $$ = make_double_linked_list_node($1);
+    $$ = make_double_linked_list_node<ast_node*>($1);
   }
   | /* empty */
   {

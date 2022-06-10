@@ -1,7 +1,7 @@
 #ifndef KS_AST_NODE_HH
 #define KS_AST_NODE_HH
 
-#include "utility.hh"
+#include "linked_list.hh"
 
 
 class ast_node;
