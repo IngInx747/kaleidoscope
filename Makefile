@@ -1,6 +1,6 @@
 CC= g++
-CFLAGS= -std=c++11
-LDFLAGS=
+CFLAGS= -std=c++11 -g $(shell llvm-config --cxxflags)
+LDFLAGS= -g $(shell llvm-config --ldflags --system-libs --libs core native mcjit)
 
 YACC= bison
 YFLAGS= -d
@@ -20,14 +20,16 @@ SRCS= $(YSRC) $(LSRC) \
 	visitor.cc \
 	utility.cc \
 	main.cc \
-	print_json_visitor.cc
+	print_json_visitor.cc \
+	codegen_visitor.cc
 
 HEADERS= $(YHEADER) \
 	ast_node.hh \
 	visitor.hh \
 	utility.cc \
 	main.hh \
-	print_json_visitor.hh
+	print_json_visitor.hh \
+	codegen_visitor.hh
 
 OBJECTS= $(SRCS:.cc=.o)
 

@@ -22,7 +22,8 @@ int yylex ();
   ast_node* node;
   const char* str;
   function_declaration_node* decl;
-  double_linked_list_node<ast_node*>* list;
+  double_linked_list_node<ast_node*>* nlist;
+  double_linked_list_node<variable_node*>* vlist;
 }
 
 %token <str> NUMBER
@@ -31,8 +32,8 @@ int yylex ();
 
 %type <node> expression
 %type <decl> declaration
-%type <list> expressions
-%type <list> arguments
+%type <nlist> expressions
+%type <vlist> arguments
 
 %left '+' '-';
 %left '*' '/';
@@ -86,7 +87,7 @@ arguments: arguments ',' SYMBOL
   }
   | SYMBOL
   {
-    $$ = make_double_linked_list_node<ast_node*>(make_variable_node($1));
+    $$ = make_double_linked_list_node<variable_node*>(make_variable_node($1));
   }
   | /* empty */
   {

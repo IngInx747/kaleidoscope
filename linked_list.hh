@@ -1,6 +1,8 @@
 #ifndef KS_LINKED_LIST_HH
 #define KS_LINKED_LIST_HH
 
+#include <stddef.h>
+
 
 template <class T>
 struct double_linked_list_node
@@ -11,19 +13,31 @@ struct double_linked_list_node
 };
 
 template <class T>
-double_linked_list_node<T>* next(double_linked_list_node<T>* node)
+inline T& data(double_linked_list_node<T>* node)
+{
+    return node->data;
+}
+
+template <class T>
+inline const T& data(const double_linked_list_node<T>* node)
+{
+    return node->data;
+}
+
+template <class T>
+inline double_linked_list_node<T>* next(double_linked_list_node<T>* node)
 {
     return node->next;
 }
 
 template <class T>
-double_linked_list_node<T>* prev(double_linked_list_node<T>* node)
+inline double_linked_list_node<T>* prev(double_linked_list_node<T>* node)
 {
     return node->prev;
 }
 
 template <class T>
-double_linked_list_node<T>* first(double_linked_list_node<T>* node)
+inline double_linked_list_node<T>* first(double_linked_list_node<T>* node)
 {
     while (node)
     {
@@ -34,7 +48,7 @@ double_linked_list_node<T>* first(double_linked_list_node<T>* node)
 }
 
 template <class T>
-double_linked_list_node<T>* last(double_linked_list_node<T>* node)
+inline double_linked_list_node<T>* last(double_linked_list_node<T>* node)
 {
     while (node)
     {
@@ -45,7 +59,19 @@ double_linked_list_node<T>* last(double_linked_list_node<T>* node)
 }
 
 template <class T>
-void append(double_linked_list_node<T>* node, double_linked_list_node<T>* new_node)
+inline size_t size(double_linked_list_node<T>* node)
+{
+    node = first(node);
+    size_t len {};
+
+    for (node = first(node); node != nullptr; node = next(node))
+        ++len;
+
+    return len;
+}
+
+template <class T>
+inline void append(double_linked_list_node<T>* node, double_linked_list_node<T>* new_node)
 {
     node = last(node);
     node->next = new_node;
@@ -61,7 +87,7 @@ void append(double_linked_list_node<T>* node, double_linked_list_node<T>* new_no
 //}
 
 template <class T, class U = T>
-double_linked_list_node<T>* make_double_linked_list_node(const U& data)
+inline double_linked_list_node<T>* make_double_linked_list_node(const U& data)
 {
     double_linked_list_node<T>* node = new double_linked_list_node<T>();
     node->data = dynamic_cast<T>(data);
@@ -76,14 +102,14 @@ double_linked_list_node<T>* make_double_linked_list_node(const U& data)
 //}
 
 template <class T, class U = T>
-void append(double_linked_list_node<T>* node, const U& data)
+inline void append(double_linked_list_node<T>* node, const U& data)
 {
     double_linked_list_node<T>* new_node = make_double_linked_list_node<T>(data);
     append(node, new_node);
 }
 
 template <class T>
-void deallocate(double_linked_list_node<T>* node)
+inline void deallocate(double_linked_list_node<T>* node)
 {
     node = first(node);
 

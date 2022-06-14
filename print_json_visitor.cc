@@ -110,7 +110,7 @@ int print_json_visitor::visit(call_function_node* node)
             print_indentation(current_indent);
             fprintf(fd, "{");
             current_indent += 2;
-                child->data->accept(this);
+                data(child)->accept(this);
                 fprintf(fd, "\b ");
             current_indent -= 2;
             print_indentation(current_indent);
@@ -139,12 +139,12 @@ int print_json_visitor::visit(function_declaration_node* node)
         print_indentation(current_indent);
         fprintf(fd, "\"arguments\": [");
         current_indent += 2;
-        for (double_linked_list_node<ast_node*>* child = first(node->arguments); child != nullptr; child = next(child))
+        for (double_linked_list_node<variable_node*>* child = first(node->arguments); child != nullptr; child = next(child))
         {
             print_indentation(current_indent);
             fprintf(fd, "{");
             current_indent += 2;
-                child->data->accept(this);
+                data(child)->accept(this);
                 fprintf(fd, "\b ");
             current_indent -= 2;
             print_indentation(current_indent);
