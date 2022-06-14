@@ -61,7 +61,6 @@ inline double_linked_list_node<T>* last(double_linked_list_node<T>* node)
 template <class T>
 inline size_t size(double_linked_list_node<T>* node)
 {
-    node = first(node);
     size_t len {};
 
     for (node = first(node); node != nullptr; node = next(node))

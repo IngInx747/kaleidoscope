@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <iostream>
 #include <unordered_map>
 
 #include <llvm/IR/IRBuilder.h>
@@ -10,17 +11,31 @@
 
 using namespace llvm;
 
-struct codegen_impl
+
+static void dump(Value* value)
+{
+    value->print(outs());
+    std::cout << std::endl;
+}
+
+
+struct codegen_visitor::codegen_impl
 {
     codegen_impl()
     : context(), builder(context), module("kaleidoscope", context)
     {}
 
     void push_value(Value* value)
-    { value_stack.push_back(value); }
+    {
+        value_stack.push_back(value);
+    }
 
     Value* pop_value()
-    { Value* value = value_stack.back(); value_stack.pop_back(); return value; }
+    {
+        Value* value = value_stack.back();
+        value_stack.pop_back();
+        return value;
+    }
 
     LLVMContext context;
     IRBuilder<> builder;
@@ -30,11 +45,12 @@ struct codegen_impl
     std::unordered_map<std::string, Value*> value_table;
 };
 
-codegen_visitor::codegen_visitor()
+codegen_visitor::codegen_visitor(const char* source_filename)
 {
     if (!impl)
     {
         impl = new codegen_impl();
+        impl->module.setSourceFileName(source_filename);
     }
 }
 
@@ -57,6 +73,7 @@ void codegen_visitor::terminate()
     {
         impl->value_stack.clear();
         impl->value_table.clear();
+        impl->module.print(outs(), nullptr);
     }
 }
 
@@ -95,21 +112,24 @@ int codegen_visitor::visit(binary_expression_node* node)
     switch (node->operation)
     {
     case '+':
-        impl->push_value(impl->builder.CreateFAdd(lval, rval, "addtmp"));
+        valrep = impl->builder.CreateFAdd(lval, rval, "addtmp");
         break;
     case '-':
-        impl->push_value(impl->builder.CreateFSub(lval, rval, "subtmp"));
+        valrep = impl->builder.CreateFSub(lval, rval, "subtmp");
         break;
     case '*':
-        impl->push_value(impl->builder.CreateFMul(lval, rval, "multmp"));
+        valrep = impl->builder.CreateFMul(lval, rval, "multmp");
         break;
     case '/':
-        impl->push_value(impl->builder.CreateFDiv(lval, rval, "divtmp"));
+        valrep = impl->builder.CreateFDiv(lval, rval, "divtmp");
         break;
     default:
         fprintf(stderr, "[ERROR] Invalid operation \"%c\".\n", node->operation);
-        return 1;
     }
+
+    if (!valrep) return 1;
+
+    impl->push_value(valrep);
 
     return 0;
 }
@@ -159,7 +179,7 @@ int codegen_visitor::visit(function_declaration_node* node)
         child = next(child);
     }
     
-    impl->push_value(function);
+    dump(function); // dump info
     return 0;
 }
 
@@ -167,13 +187,11 @@ int codegen_visitor::visit(function_definition_node* node)
 {
     Function *function = impl->module.getFunction(node->declaration->name);
 
-    if (!function && node->declaration->accept(this) != 0)
-        return 1;
-
-    function = static_cast<Function*>(impl->pop_value());
-
-    //if (!function)
-    //    return 1;
+    if (!function)
+    {
+        if (node->declaration->accept(this) != 0) return 1;
+        function = impl->module.getFunction(node->declaration->name);
+    }
 
     if (!function->empty())
     {
@@ -181,23 +199,30 @@ int codegen_visitor::visit(function_definition_node* node)
         return 1;
     }
 
+    // Create a new basic block to start insertion into.
     BasicBlock *block = BasicBlock::Create(impl->context, "entry", function);
     impl->builder.SetInsertPoint(block);
 
+    // Record the function arguments in the NamedValues map.
     impl->value_table.clear();
     for (Argument& arg : function->args())
         impl->value_table[arg.getName()] = &arg;
 
     if (node->definition->accept(this) != 0)
     {
-        function->eraseFromParent();
+        function->eraseFromParent(); // Error reading body, remove function.
         return 1;
     }
 
-    Value* retval = impl->pop_value();
-    impl->builder.CreateRet(retval);
-    verifyFunction(*function);
-    impl->push_value(function);
+    Value* definition = impl->pop_value(); // returned Value
+    impl->builder.CreateRet(definition); // Finish off the function.
+    verifyFunction(*function); // Validate the generated code, checking for consistency.
+
+    dump(function); // dump info
+
+    // Remove the anonymous expression.
+    if (strcmp(node->declaration->name, "__anon_expr") == 0)
+        function->eraseFromParent();
 
     return 0;
 }

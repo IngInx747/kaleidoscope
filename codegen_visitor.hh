@@ -4,14 +4,15 @@
 #include "visitor.hh"
 
 
-struct codegen_impl;
-
 class codegen_visitor : public visitor
 {
+protected:
+    struct codegen_impl;
+
 public:
-    codegen_visitor();
+    codegen_visitor(const char*);
     ~codegen_visitor();
-    
+
     void initialize();
     void terminate();
 

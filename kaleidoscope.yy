@@ -10,6 +10,7 @@
 %code // *.cc
 {
 #include <cstdio>
+#include "utility.hh"
 #include "kal.parser.gen.hh"
 void yyerror (char const *);
 int yylex ();
@@ -52,9 +53,16 @@ program: program command
   }
   ;
 
-command: DEFINE declaration expression ';'
+command: expression ';'
   {
-    auto func = make_function_definition_node($2, $3);
+    auto* decl = make_function_declaration_node(make_c_str("__anon_expr"), nullptr);
+    auto* func = make_function_definition_node(decl, $1);
+    func->accept(get_the_visitor());
+    delete func;
+  }
+  | DEFINE declaration expression ';'
+  {
+    auto* func = make_function_definition_node($2, $3);
     func->accept(get_the_visitor());
     delete func;
   }
@@ -62,11 +70,6 @@ command: DEFINE declaration expression ';'
   {
     $2->accept(get_the_visitor());
     delete $2;
-  }
-  | expression ';'
-  {
-    $1->accept(get_the_visitor());
-    delete $1;
   }
   | ERROR ';'
   {
