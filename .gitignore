@@ -7,7 +7,7 @@ kcc
 *.a
 
 # Output
-*.ir
+*.ll
 *.txt
 *.json
 *.output

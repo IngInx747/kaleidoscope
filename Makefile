@@ -8,11 +8,11 @@ YFLAGS= -d
 LEX= flex
 LFLAGS=
 
-YGEN= kaleidoscope.yy
+YGEN= kaleidoscope.y
 YSRC= kal.parser.gen.cc
 YHEADER= kal.parser.gen.hh
 
-LGEN= kaleidoscope.ll
+LGEN= kaleidoscope.l
 LSRC= kal.lexer.gen.cc
 
 SRCS= $(YSRC) $(LSRC) \
