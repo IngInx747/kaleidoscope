@@ -6,22 +6,27 @@
 
 int main(int argc, char** argv)
 {
+    FILE* fd {};
+
     if (argc < 2)
     {
-        fprintf(stderr, "Usage: %s [source]\n", argv[0]);
-        return 1;
+        fprintf(stdout, "[INFO] Entering interactive mode.\n");
+        yyin = stdin;
+        //fprintf(stderr, "Usage: %s [source]\n", argv[0]);
+        //return 1;
     }
-
-    FILE* fd = fopen(argv[1], "r");
-
-    if (!fd)
+    else
     {
-        fprintf(stderr, "Cannot open file \"%s\".\n", argv[1]);
-        return 1;
+        fd = fopen(argv[1], "r");
+
+        if (!fd)
+        {
+            fprintf(stderr, "[ERROR] Cannot open file \"%s\".\n", argv[1]);
+            return 1;
+        }
+        
+        yyin = fd; // set yyin which is used by Lexer
     }
-    
-    // set yyin which is used by Lexer
-    yyin = fd;
 
     //print_json_visitor the_visitor;
     //the_visitor.set_output_file_descriptor(stdout);
