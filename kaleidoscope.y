@@ -98,7 +98,11 @@ arguments: arguments ',' SYMBOL
   }
   ;
 
-expression: expression '+' expression
+expression: '(' expression ')'
+  {
+    $$ = $2;
+  }
+  | expression '+' expression
   {
     $$ = make_binary_expression_node($1, $3, '+');
   }
