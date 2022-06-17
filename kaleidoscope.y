@@ -4,13 +4,13 @@
 %code requires // *.hh
 {
 #include "ast_node.hh"
-#include "visitor.hh"
 }
 
 %code // *.cc
 {
 #include <cstdio>
 #include "utility.hh"
+#include "visitor.hh"
 #include "kal.parser.gen.hh"
 void yyerror (char const *);
 int yylex ();
@@ -53,12 +53,10 @@ program: program command
   }
   ;
 
-command: expression ';'
+command: EXTERN declaration ';'
   {
-    auto* decl = make_function_declaration_node(make_c_str("__anon_expr"), nullptr);
-    auto* func = make_function_definition_node(decl, $1);
-    func->accept(get_the_visitor());
-    delete func;
+    $2->accept(get_the_visitor());
+    delete $2;
   }
   | DEFINE declaration expression ';'
   {
@@ -66,10 +64,12 @@ command: expression ';'
     func->accept(get_the_visitor());
     delete func;
   }
-  | EXTERN declaration ';'
+  | expression ';'
   {
-    $2->accept(get_the_visitor());
-    delete $2;
+    auto* decl = make_function_declaration_node(make_c_str(""), nullptr);
+    auto* func = make_function_definition_node(decl, $1);
+    func->accept(get_the_visitor());
+    delete func;
   }
   | ERROR ';'
   {

@@ -178,7 +178,8 @@ int codegen_visitor::visit(function_declaration_node* node)
         arg.setName(data(child)->name);
         child = next(child);
     }
-    
+
+    impl->push_value(function);
     dump(function); // dump info
     return 0;
 }
@@ -190,7 +191,7 @@ int codegen_visitor::visit(function_definition_node* node)
     if (!function)
     {
         if (node->declaration->accept(this) != 0) return 1;
-        function = impl->module.getFunction(node->declaration->name);
+        function = static_cast<Function*>(impl->pop_value());
     }
 
     if (!function->empty())
@@ -221,8 +222,8 @@ int codegen_visitor::visit(function_definition_node* node)
     dump(function); // dump info
 
     // Remove the anonymous expression.
-    if (strcmp(node->declaration->name, "__anon_expr") == 0)
-        function->eraseFromParent();
+    //if (strcmp(node->declaration->name, "") == 0)
+    //    function->eraseFromParent();
 
     return 0;
 }

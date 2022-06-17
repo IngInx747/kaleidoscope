@@ -1,6 +1,6 @@
 CC= g++
 CFLAGS= -std=c++11 -g $(shell llvm-config --cxxflags)
-LDFLAGS= -g $(shell llvm-config --ldflags --system-libs --libs core native mcjit)
+LDFLAGS= -g $(shell llvm-config --ldflags --system-libs --libs core)
 
 YACC= bison
 YFLAGS= -d

@@ -2,10 +2,16 @@
 2-3+4*5;
 
 # Variable test
-1+x-y*z;
+#1+x-y*z;
 
 # Function definition test
 def f(x,y,z) x*y*z;
 
 # Extern function declaration test
 extern sin(x);
+
+# Call other function in the function
+def g(x,y,z) x+y+z + f(x,y,z);
+
+# Call function
+10.0 + f(1.2, 3.4, 5.6);
