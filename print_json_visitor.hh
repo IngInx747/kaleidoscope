@@ -19,6 +19,7 @@ public:
     virtual int visit(call_function_node*);
     virtual int visit(function_declaration_node*);
     virtual int visit(function_definition_node*);
+    virtual int visit(top_level_node*);
 
 protected:
     int node_count {};

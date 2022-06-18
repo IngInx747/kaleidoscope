@@ -35,6 +35,7 @@ int yylex ();
 %type <decl> declaration
 %type <nlist> expressions
 %type <vlist> arguments
+%type <node> command
 
 %left '+' '-';
 %left '*' '/';
@@ -45,7 +46,8 @@ int yylex ();
 
 program: program command
   {
-    ;
+    $2->accept(get_the_visitor());
+    delete $2;
   }
   | /* empty */
   {
@@ -55,21 +57,18 @@ program: program command
 
 command: EXTERN declaration ';'
   {
-    $2->accept(get_the_visitor());
-    delete $2;
+    $$ = make_top_level_node($2);
   }
   | DEFINE declaration expression ';'
   {
     auto* func = make_function_definition_node($2, $3);
-    func->accept(get_the_visitor());
-    delete func;
+    $$ = make_top_level_node(func);
   }
   | expression ';'
   {
     auto* decl = make_function_declaration_node(make_c_str(""), nullptr);
     auto* func = make_function_definition_node(decl, $1);
-    func->accept(get_the_visitor());
-    delete func;
+    $$ = make_top_level_node(func);
   }
   | ERROR ';'
   {

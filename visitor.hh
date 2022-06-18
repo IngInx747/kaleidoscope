@@ -14,6 +14,7 @@ public:
     virtual int visit(call_function_node*) = 0;
     virtual int visit(function_declaration_node*) = 0;
     virtual int visit(function_definition_node*) = 0;
+    virtual int visit(top_level_node*) = 0;
 };
 
 void set_the_visitor(visitor*);

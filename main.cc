@@ -29,7 +29,6 @@ int main(int argc, char** argv)
     }
 
     //print_json_visitor the_visitor;
-    //the_visitor.set_output_file_descriptor(stdout);
     codegen_visitor the_visitor(argv[1]);
 
     // initialize the visitor

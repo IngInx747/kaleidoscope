@@ -189,3 +189,9 @@ int print_json_visitor::visit(function_definition_node* node)
     fprintf(fd, "},");
     return 0;
 }
+
+int print_json_visitor::visit(top_level_node* node)
+{
+    node->content->accept(this);
+    return 0;
+}

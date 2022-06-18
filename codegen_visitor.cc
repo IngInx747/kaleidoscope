@@ -180,7 +180,6 @@ int codegen_visitor::visit(function_declaration_node* node)
     }
 
     impl->push_value(function);
-    dump(function); // dump info
     return 0;
 }
 
@@ -219,11 +218,22 @@ int codegen_visitor::visit(function_definition_node* node)
     impl->builder.CreateRet(definition); // Finish off the function.
     verifyFunction(*function); // Validate the generated code, checking for consistency.
 
-    dump(function); // dump info
-
     // Remove the anonymous expression.
     //if (strcmp(node->declaration->name, "") == 0)
     //    function->eraseFromParent();
 
+    impl->push_value(function);
+    return 0;
+}
+
+int codegen_visitor::visit(top_level_node* node)
+{
+    if (node->content->accept(this) != 0)
+        return 1;
+
+    Value* content = impl->pop_value();
+    impl->value_stack.clear();
+
+    dump(content); // dump info
     return 0;
 }

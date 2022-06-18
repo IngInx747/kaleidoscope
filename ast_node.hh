@@ -171,6 +171,25 @@ public:
 };
 
 
+class top_level_node : public ast_node
+{
+public:
+    virtual int accept(visitor*);
+
+    virtual ~top_level_node()
+    {
+        if (content)
+        {
+            delete content;
+            content = nullptr;
+        }
+    }
+
+public:
+    ast_node* content {nullptr};
+};
+
+
 number_node* make_number_node(const char*);
 
 variable_node* make_variable_node(const char*);
@@ -182,6 +201,8 @@ call_function_node* make_call_function_node(const char*, double_linked_list_node
 function_declaration_node* make_function_declaration_node(const char*, double_linked_list_node<variable_node*>*);
 
 function_definition_node* make_function_definition_node(function_declaration_node*, ast_node*);
+
+top_level_node* make_top_level_node(ast_node*);
 
 
 #endif

@@ -1,11 +1,11 @@
 # Numbers test
-2-3+4*5;
+2+(4-3)*5;
 
 # Variable test
-#1+x-y*z;
+1+x-y*z;
 
 # Function definition test
-def f(x,y,z) x*y*z;
+def f(x,y,z) x*x+y*y+z*z;
 
 # Extern function declaration test
 extern sin(x);

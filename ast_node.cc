@@ -33,6 +33,11 @@ int function_definition_node::accept(visitor* visitor)
     return visitor->visit(this);
 }
 
+int top_level_node::accept(visitor* visitor)
+{
+    return visitor->visit(this);
+}
+
 
 number_node* make_number_node(const char* text)
 {
@@ -106,6 +111,18 @@ function_definition_node* make_function_definition_node(function_declaration_nod
     {
         node->declaration = declaration;
         node->definition = definition;
+    }
+
+    return node;
+}
+
+top_level_node* make_top_level_node(ast_node* content)
+{
+    top_level_node* node = new top_level_node();
+
+    if (node)
+    {
+        node->content = content;
     }
 
     return node;
