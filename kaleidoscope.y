@@ -37,8 +37,10 @@ int yylex ();
 %type <vlist> arguments
 %type <node> command
 
-%left '+' '-';
-%left '*' '/';
+%right  '='
+%left   '>' '<';
+%left   '+' '-';
+%left   '*' '/';
 
 %start program;
 
@@ -116,6 +118,14 @@ expression: '(' expression ')'
   | expression '/' expression
   {
     $$ = make_binary_expression_node($1, $3, '/');
+  }
+  | expression '>' expression
+  {
+    $$ = make_binary_expression_node($1, $3, '>');
+  }
+  | expression '<' expression
+  {
+    $$ = make_binary_expression_node($1, $3, '<');
   }
   | SYMBOL '(' expressions ')'
   {

@@ -5,9 +5,13 @@
 #include <iostream>
 #include <unordered_map>
 
-#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LegacyPassManager.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
 
 using namespace llvm;
 
@@ -21,9 +25,22 @@ static void dump(Value* value)
 
 struct codegen_visitor::codegen_impl
 {
-    codegen_impl()
-    : context(), builder(context), module("kaleidoscope", context)
-    {}
+    codegen_impl() :
+    context(),
+    builder(context),
+    module("kaleidoscope", context),
+    FPM(&module)
+    {
+        // Do simple "peephole" optimizations and bit-twiddling optzns.
+        FPM.add(createInstructionCombiningPass());
+        // Reassociate expressions.
+        FPM.add(createReassociatePass());
+        // Eliminate Common SubExpressions.
+        FPM.add(createGVNPass());
+        // Simplify the control flow graph (deleting unreachable blocks, etc).
+        FPM.add(createCFGSimplificationPass());
+        FPM.doInitialization();
+    }
 
     void push_value(Value* value)
     {
@@ -37,10 +54,15 @@ struct codegen_visitor::codegen_impl
         return value;
     }
 
+    // llvm base
     LLVMContext context;
     IRBuilder<> builder;
     Module module;
 
+    // llvm optimization
+    legacy::FunctionPassManager FPM;
+
+    // customized info
     std::vector<Value*> value_stack;
     std::unordered_map<std::string, Value*> value_table;
 };
@@ -217,6 +239,9 @@ int codegen_visitor::visit(function_definition_node* node)
     Value* definition = impl->pop_value(); // returned Value
     impl->builder.CreateRet(definition); // Finish off the function.
     verifyFunction(*function); // Validate the generated code, checking for consistency.
+
+    // Optimize the function
+    impl->FPM.run(*function);
 
     // Remove the anonymous expression.
     //if (strcmp(node->declaration->name, "") == 0)
