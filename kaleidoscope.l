@@ -8,11 +8,14 @@
 %option yylineno
 
 NUMBER          [0-9]+\.?|[0-9]*\.[0-9]+
-SYMBOL          [a-zA-Z][a-zA-Z0-9]*
+SYMBOL          [a-zA-Z_][a-zA-Z0-9_]*
 EXTERN          extern
 DEFINE          def
-OPERATION       [\+\-\*\/]
-SEPARATOR       [\(\);,]
+IF              if
+THEN            then
+ELSE            else
+FOR             for
+OPERATOR        [\+\-\*\/\=\<\>\(\)\{\};,]
 WHITESPACE      [\t\r ]
 NEWLINE         \n
 COMMENT         [#].*$
@@ -22,11 +25,15 @@ COMMENT         [#].*$
 <INITIAL>{
 {EXTERN}        { return (EXTERN); }
 {DEFINE}        { return (DEFINE); }
+{IF}            { return (IF); }
+{THEN}          { return (THEN); }
+{ELSE}          { return (ELSE); }
+{FOR}           { return (FOR); }
+
 {NUMBER}        { yylval.str = make_c_str(yytext); return (NUMBER); }
 {SYMBOL}        { yylval.str = make_c_str(yytext); return (SYMBOL); }
 
-{SEPARATOR}     |
-{OPERATION}     { return yytext[0]; }
+{OPERATOR}      { return yytext[0]; }
 
 {WHITESPACE}    |
 {COMMENT}       {}

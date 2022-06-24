@@ -28,6 +28,12 @@ void print_json_visitor::print_indentation(int indent)
         fprintf(fd, " ");
 }
 
+int print_json_visitor::visit(top_level_node* node)
+{
+    node->content->accept(this);
+    return 0;
+}
+
 int print_json_visitor::visit(number_node* node)
 {
     std::string title("node " + std::to_string(++node_count));
@@ -68,8 +74,10 @@ int print_json_visitor::visit(binary_expression_node* node)
     current_indent += 2;
         print_indentation(current_indent);
         fprintf(fd, "\"type\": \"binary_expression_node\",");
+        //
         print_indentation(current_indent);
         fprintf(fd, "\"operation\": \"%c\",", node->operation);
+        //
         print_indentation(current_indent);
         fprintf(fd, "\"left\": {");
         current_indent += 2;
@@ -78,6 +86,7 @@ int print_json_visitor::visit(binary_expression_node* node)
         current_indent -= 2;
         print_indentation(current_indent);
         fprintf(fd, "},");
+        //
         print_indentation(current_indent);
         fprintf(fd, "\"right\": {");
         current_indent += 2;
@@ -100,10 +109,12 @@ int print_json_visitor::visit(call_function_node* node)
     current_indent += 2;
         print_indentation(current_indent);
         fprintf(fd, "\"type\": \"call_function_node\",");
+        //
         print_indentation(current_indent);
         fprintf(fd, "\"callee\": \"%s\",", node->callee);
+        //
         print_indentation(current_indent);
-        fprintf(fd, "\"arguments\": [");
+        fprintf(fd, "\"arguments\": [ ");
         current_indent += 2;
         for (double_linked_list_node<ast_node*>* child = first(node->arguments); child != nullptr; child = next(child))
         {
@@ -134,10 +145,12 @@ int print_json_visitor::visit(function_declaration_node* node)
     current_indent += 2;
         print_indentation(current_indent);
         fprintf(fd, "\"type\": \"function_declaration_node\",");
+        //
         print_indentation(current_indent);
         fprintf(fd, "\"name\": \"%s\",", node->name);
+        //
         print_indentation(current_indent);
-        fprintf(fd, "\"arguments\": [");
+        fprintf(fd, "\"arguments\": [ ");
         current_indent += 2;
         for (double_linked_list_node<variable_node*>* child = first(node->arguments); child != nullptr; child = next(child))
         {
@@ -168,6 +181,7 @@ int print_json_visitor::visit(function_definition_node* node)
     current_indent += 2;
         print_indentation(current_indent);
         fprintf(fd, "\"type\": \"function_definition_node\",");
+        //
         print_indentation(current_indent);
         fprintf(fd, "\"declaration\": {");
         current_indent += 2;
@@ -176,6 +190,7 @@ int print_json_visitor::visit(function_definition_node* node)
         current_indent -= 2;
         print_indentation(current_indent);
         fprintf(fd, "},");
+        //
         print_indentation(current_indent);
         fprintf(fd, "\"definition\": {");
         current_indent += 2;
@@ -190,8 +205,152 @@ int print_json_visitor::visit(function_definition_node* node)
     return 0;
 }
 
-int print_json_visitor::visit(top_level_node* node)
+int print_json_visitor::visit(block_node* node)
 {
-    node->content->accept(this);
+    std::string title("node " + std::to_string(++node_count));
+    print_indentation(current_indent);
+    fprintf(fd, "\"%s\": {", title.c_str());
+    current_indent += 2;
+        print_indentation(current_indent);
+        fprintf(fd, "\"type\": \"block_node\",");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"expressions\": [ ");
+        current_indent += 2;
+        for (double_linked_list_node<ast_node*>* child = first(node->expressions); child != nullptr; child = next(child))
+        {
+            print_indentation(current_indent);
+            fprintf(fd, "{");
+            current_indent += 2;
+                data(child)->accept(this);
+                fprintf(fd, "\b ");
+            current_indent -= 2;
+            print_indentation(current_indent);
+            fprintf(fd, "},");
+        }
+        fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "]");
+    current_indent -= 2;
+    print_indentation(current_indent);
+    fprintf(fd, "},");
+    return 0;
+}
+
+int print_json_visitor::visit(assignment_node* node)
+{
+    std::string title("node " + std::to_string(++node_count));
+    print_indentation(current_indent);
+    fprintf(fd, "\"%s\": {", title.c_str());
+    current_indent += 2;
+        print_indentation(current_indent);
+        fprintf(fd, "\"type\": \"assignment_node\",");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"variable\": \"%s\",", node->variable);
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"RHS\": {");
+        current_indent += 2;
+            node->expression->accept(this);
+            fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "}");
+    current_indent -= 2;
+    print_indentation(current_indent);
+    fprintf(fd, "},");
+    return 0;
+}
+
+int print_json_visitor::visit(if_else_node* node)
+{
+    std::string title("node " + std::to_string(++node_count));
+    print_indentation(current_indent);
+    fprintf(fd, "\"%s\": {", title.c_str());
+    current_indent += 2;
+        print_indentation(current_indent);
+        fprintf(fd, "\"type\": \"if_else_node\",");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"condition\": {");
+        current_indent += 2;
+            node->condition->accept(this);
+            fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "},");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"then\": {");
+        current_indent += 2;
+            node->then_expr->accept(this);
+            fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "},");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"else\": {");
+        current_indent += 2;
+            node->else_expr->accept(this);
+            fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "}");
+    current_indent -= 2;
+    print_indentation(current_indent);
+    fprintf(fd, "},");
+    return 0;
+}
+
+int print_json_visitor::visit(for_loop_node* node)
+{
+    std::string title("node " + std::to_string(++node_count));
+    print_indentation(current_indent);
+    fprintf(fd, "\"%s\": {", title.c_str());
+    current_indent += 2;
+        print_indentation(current_indent);
+        fprintf(fd, "\"type\": \"for_loop_node\",");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"initialization\": {");
+        current_indent += 2;
+            node->init->accept(this);
+            fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "},");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"condition\": {");
+        current_indent += 2;
+            node->cond->accept(this);
+            fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "},");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"step\": {");
+        current_indent += 2;
+            node->step->accept(this);
+            fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "},");
+        //
+        print_indentation(current_indent);
+        fprintf(fd, "\"expression\": {");
+        current_indent += 2;
+            node->expr->accept(this);
+            fprintf(fd, "\b ");
+        current_indent -= 2;
+        print_indentation(current_indent);
+        fprintf(fd, "}");
+    current_indent -= 2;
+    print_indentation(current_indent);
+    fprintf(fd, "},");
     return 0;
 }

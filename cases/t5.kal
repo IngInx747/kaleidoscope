@@ -1,0 +1,24 @@
+# Fibonacci
+
+# if/then/else
+def fib_1(x)
+    if x < 3 then
+        1
+    else
+        fib_1(x-1) + fib_1(x-2)
+;
+
+fib_1(10);
+
+# for
+def fib_2(x) {
+    a = 1, b = 1, c = 1,
+    for i = 2, i < x, i = i + 1, {
+        c = a + b,
+        a = b,
+        b = c
+    },
+    c
+};
+
+fib_2(10);

@@ -18,6 +18,10 @@ int yylex ();
 
 %token EXTERN "extern"
 %token DEFINE "def"
+%token IF     "if"
+%token THEN   "then"
+%token ELSE   "else"
+%token FOR    "for"
 
 %union {
   ast_node* node;
@@ -138,6 +142,22 @@ expression: '(' expression ')'
   | NUMBER
   {
     $$ = make_number_node($1);
+  }
+  | '{' expressions '}'
+  {
+    $$ = make_block_node($2);
+  }
+  | SYMBOL '=' expression
+  {
+    $$ = make_assignment_node($1, $3);
+  }
+  | IF expression THEN expression ELSE expression
+  {
+    $$ = make_if_else_node($2, $4, $6);
+  }
+  | FOR expression ',' expression ',' expression ',' expression
+  {
+    $$ = make_for_loop_node($2, $4, $6, $8);
   }
   ;
 

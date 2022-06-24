@@ -99,6 +99,18 @@ void codegen_visitor::terminate()
     }
 }
 
+int codegen_visitor::visit(top_level_node* node)
+{
+    if (node->content->accept(this) != 0)
+        return 1;
+
+    Value* content = impl->pop_value();
+    impl->value_stack.clear();
+
+    dump(content); // dump info
+    return 0;
+}
+
 int codegen_visitor::visit(number_node* node)
 {
     double dvalue = std::stod(std::string(node->value));
@@ -144,6 +156,16 @@ int codegen_visitor::visit(binary_expression_node* node)
         break;
     case '/':
         valrep = impl->builder.CreateFDiv(lval, rval, "divtmp");
+        break;
+    case '<':
+        valrep = impl->builder.CreateFCmpULT(lval, rval, "cmplttmp");
+        valrep = impl->builder.CreateUIToFP(valrep, Type::getDoubleTy(impl->context), "booltmp"); // Convert bool 0/1 to double 0.0 or 1.0
+        break;
+    case '>':
+        valrep = impl->builder.CreateFCmpUGT(lval, rval, "cmpgttmp");
+        valrep = impl->builder.CreateUIToFP(valrep, Type::getDoubleTy(impl->context), "booltmp"); // Convert bool 0/1 to double 0.0 or 1.0
+        break;
+    case '=':
         break;
     default:
         fprintf(stderr, "[ERROR] Invalid operation \"%c\".\n", node->operation);
@@ -251,14 +273,22 @@ int codegen_visitor::visit(function_definition_node* node)
     return 0;
 }
 
-int codegen_visitor::visit(top_level_node* node)
+int codegen_visitor::visit(block_node* node)
 {
-    if (node->content->accept(this) != 0)
-        return 1;
+    return 0;
+}
 
-    Value* content = impl->pop_value();
-    impl->value_stack.clear();
+int codegen_visitor::visit(assignment_node* node)
+{
+    return 0;
+}
 
-    dump(content); // dump info
+int codegen_visitor::visit(if_else_node* node)
+{
+    return 0;
+}
+
+int codegen_visitor::visit(for_loop_node* node)
+{
     return 0;
 }

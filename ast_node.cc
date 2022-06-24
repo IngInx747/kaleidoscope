@@ -3,6 +3,11 @@
 #include "visitor.hh"
 
 
+int top_level_node::accept(visitor* visitor)
+{
+    return visitor->visit(this);
+}
+
 int number_node::accept(visitor* visitor)
 {
     return visitor->visit(this);
@@ -33,9 +38,37 @@ int function_definition_node::accept(visitor* visitor)
     return visitor->visit(this);
 }
 
-int top_level_node::accept(visitor* visitor)
+int block_node::accept(visitor* visitor)
 {
     return visitor->visit(this);
+}
+
+int assignment_node::accept(visitor* visitor)
+{
+    return visitor->visit(this);
+}
+
+int if_else_node::accept(visitor* visitor)
+{
+    return visitor->visit(this);
+}
+
+int for_loop_node::accept(visitor* visitor)
+{
+    return visitor->visit(this);
+}
+
+
+top_level_node* make_top_level_node(ast_node* content)
+{
+    top_level_node* node = new top_level_node();
+
+    if (node)
+    {
+        node->content = content;
+    }
+
+    return node;
 }
 
 
@@ -116,13 +149,55 @@ function_definition_node* make_function_definition_node(function_declaration_nod
     return node;
 }
 
-top_level_node* make_top_level_node(ast_node* content)
+block_node* make_block_node(double_linked_list_node<ast_node*>* nodes)
 {
-    top_level_node* node = new top_level_node();
+    block_node* node = new block_node();
 
     if (node)
     {
-        node->content = content;
+        node->expressions = nodes;
+    }
+
+    return node;
+}
+
+assignment_node* make_assignment_node(const char* text, ast_node* expression)
+{
+    assignment_node* node = new assignment_node();
+
+    if (node)
+    {
+        node->variable = text;
+        node->expression = expression;
+    }
+
+    return node;
+}
+
+if_else_node* make_if_else_node(ast_node* condition, ast_node* then_expr, ast_node* else_expr)
+{
+    if_else_node* node = new if_else_node();
+
+    if (node)
+    {
+        node->condition = condition;
+        node->then_expr = then_expr;
+        node->else_expr = else_expr;
+    }
+
+    return node;
+}
+
+for_loop_node* make_for_loop_node(ast_node* init, ast_node* cond, ast_node* step, ast_node* expr)
+{
+    for_loop_node* node = new for_loop_node();
+
+    if (node)
+    {
+        node->init = init;
+        node->cond = cond;
+        node->step = step;
+        node->expr = expr;
     }
 
     return node;
