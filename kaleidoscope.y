@@ -72,7 +72,7 @@ command: EXTERN declaration ';'
   }
   | expression ';'
   {
-    auto* decl = make_function_declaration_node(make_c_str(""), nullptr);
+    auto* decl = make_function_declaration_node("", nullptr);
     auto* func = make_function_definition_node(decl, $1);
     $$ = make_top_level_node(func);
   }

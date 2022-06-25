@@ -28,8 +28,8 @@ int main(int argc, char** argv)
         yyin = fd; // set yyin which is used by Lexer
     }
 
-    print_json_visitor the_visitor;
-    //codegen_visitor the_visitor(argv[1]);
+    //print_json_visitor the_visitor;
+    codegen_visitor the_visitor(argv[1]);
 
     // initialize the visitor
     the_visitor.initialize();

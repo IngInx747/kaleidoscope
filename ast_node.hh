@@ -136,7 +136,7 @@ public:
 
     virtual ~function_declaration_node()
     {
-        if (name)
+        if (name && name[0] != '\0')
         {
             delete name;
             name = nullptr;
@@ -151,7 +151,7 @@ public:
     }
 
 public:
-    const char* name {nullptr}; // function name
+    const char* name {nullptr}; // function name (use "" for anonymous expression)
     double_linked_list_node<variable_node*>* arguments {nullptr};
 };
 
