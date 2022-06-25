@@ -262,8 +262,8 @@ int codegen_visitor::visit(function_definition_node* node)
     impl->builder.CreateRet(definition); // Finish off the function.
     verifyFunction(*function); // Validate the generated code, checking for consistency.
 
-    // Optimize the function
-    impl->FPM.run(*function);
+    // Optimize the function(optional)
+    //impl->FPM.run(*function);
 
     // Remove the anonymous expression.
     //if (strcmp(node->declaration->name, "") == 0)
@@ -285,6 +285,45 @@ int codegen_visitor::visit(assignment_node* node)
 
 int codegen_visitor::visit(if_else_node* node)
 {
+    if (node->condition->accept(this) != 0)
+        return 1;
+    Value* condition = impl->pop_value();
+
+    // Convert condition to a bool by comparing non-equal to 0.0.
+    condition = impl->builder.CreateFCmpONE(condition, ConstantFP::get(impl->context, APFloat(0.0)), "cond");
+    Function* function = impl->builder.GetInsertBlock()->getParent();
+
+    // Create blocks for the "then" and "else" cases. Insert the "then" block at the end of the function.
+    BasicBlock* then_block = BasicBlock::Create(impl->context, "then", function);
+    BasicBlock* else_block = BasicBlock::Create(impl->context, "else");
+    BasicBlock* merg_block = BasicBlock::Create(impl->context, "merge");
+    impl->builder.CreateCondBr(condition, then_block, else_block);
+
+    // Emit "then" value.
+    impl->builder.SetInsertPoint(then_block);
+    if (node->then_expr->accept(this) != 0)
+        return 1;
+    Value* then_expr = impl->pop_value();
+    impl->builder.CreateBr(merg_block);
+    then_block = impl->builder.GetInsertBlock(); // Codegen of 'then' can change the current block, update "then" block for the PHI.
+
+    // Emit "else" block.
+    function->getBasicBlockList().push_back(else_block);
+    impl->builder.SetInsertPoint(else_block);
+    if (node->else_expr->accept(this) != 0)
+        return 1;
+    Value* else_expr = impl->pop_value();
+    impl->builder.CreateBr(merg_block);
+    else_block = impl->builder.GetInsertBlock(); // Codegen of 'else' can change the current block, update "else" block for the PHI.
+
+    // Emit "merge" block.
+    function->getBasicBlockList().push_back(merg_block);
+    impl->builder.SetInsertPoint(merg_block);
+    PHINode* phi = impl->builder.CreatePHI(Type::getDoubleTy(impl->context), 2, "iftmp");
+    phi->addIncoming(then_expr, then_block);
+    phi->addIncoming(else_expr, else_block);
+
+    impl->push_value(phi);
     return 0;
 }
 
