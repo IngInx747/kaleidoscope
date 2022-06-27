@@ -9,9 +9,12 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
-#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Utils.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+
+#define FUNCTION_OPTIMIZATION
 
 using namespace llvm;
 
@@ -31,6 +34,8 @@ struct codegen_visitor::codegen_impl
     module("kaleidoscope", context),
     FPM(&module)
     {
+        // Promote allocas to registers.
+        FPM.add(createPromoteMemoryToRegisterPass());
         // Do simple "peephole" optimizations and bit-twiddling optzns.
         FPM.add(createInstructionCombiningPass());
         // Reassociate expressions.
@@ -269,8 +274,9 @@ int codegen_visitor::visit(function_definition_node* node)
     verifyFunction(*function); // Validate the generated code, checking for consistency.
 
     // Optimize the function(optional)
-    //impl->FPM.run(*function);
-
+#ifdef FUNCTION_OPTIMIZATION
+    impl->FPM.run(*function);
+#endif
     // Remove the anonymous expression.
     //if (strcmp(node->declaration->name, "") == 0)
     //    function->eraseFromParent();
