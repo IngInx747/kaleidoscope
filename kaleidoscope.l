@@ -15,7 +15,7 @@ IF              if
 THEN            then
 ELSE            else
 FOR             for
-OPERATOR        [\+\-\*\/\=\<\>\(\)\{\};,]
+OPERATOR        [\+\-\*\/\=\<\>\(\)\{\};\,]
 WHITESPACE      [\t\r ]
 NEWLINE         \n
 COMMENT         [#].*$

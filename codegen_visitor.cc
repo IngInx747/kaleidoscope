@@ -215,7 +215,7 @@ int codegen_visitor::visit(function_declaration_node* node)
     Function* function = Function::Create(function_type, Function::ExternalLinkage, node->name, impl->module);
 
     if (!function) return 1;
-        
+
     auto* child = first(node->arguments);
     for (Argument& argument : function->args())
     {
@@ -281,6 +281,17 @@ int codegen_visitor::visit(function_definition_node* node)
 
 int codegen_visitor::visit(block_node* node)
 {
+    Value* valrep {nullptr};
+
+    for (auto* child = first(node->expressions); child != nullptr; child = next(child))
+    {
+        if (data(child)->accept(this) != 0)
+            return 1;
+        valrep = impl->pop_value();
+    }
+
+    impl->push_value(valrep); // return value of the last expression
+
     return 0;
 }
 
@@ -311,16 +322,18 @@ int codegen_visitor::visit(if_else_node* node)
 {
     Function* function = impl->builder.GetInsertBlock()->getParent();
 
+    // Create blocks for the "then" and "else" cases.
+    BasicBlock* then_block = BasicBlock::Create(impl->context, "if-true");
+    BasicBlock* else_block = BasicBlock::Create(impl->context, "if-false");
+    BasicBlock* merg_block = BasicBlock::Create(impl->context, "if-merge");
+
     // Emit "condition" value
     if (node->condition->accept(this) != 0)
         return 1;
     Value* condition = impl->pop_value(); // Convert condition to a bool by comparing non-equal to 0.0.
-    condition = impl->builder.CreateFCmpONE(condition, ConstantFP::get(impl->context, APFloat(0.0)), "cond");
+    condition = impl->builder.CreateFCmpONE(condition, ConstantFP::get(impl->context, APFloat(0.0)), "if_cond");
 
-    // Create blocks for the "then" and "else" cases.
-    BasicBlock* then_block = BasicBlock::Create(impl->context, "then");
-    BasicBlock* else_block = BasicBlock::Create(impl->context, "else");
-    BasicBlock* merg_block = BasicBlock::Create(impl->context, "merge");
+    // Create conditional branch.
     impl->builder.CreateCondBr(condition, then_block, else_block);
 
     // Emit value in "then" block.
@@ -330,7 +343,7 @@ int codegen_visitor::visit(if_else_node* node)
         return 1;
     Value* then_expr = impl->pop_value();
     impl->builder.CreateBr(merg_block);
-    then_block = impl->builder.GetInsertBlock(); // Codegen of 'then' can change the current block, update "then" block for the PHI.
+    BasicBlock* phi_pred_then = impl->builder.GetInsertBlock();
 
     // Emit value in "else" block.
     function->getBasicBlockList().push_back(else_block);
@@ -339,14 +352,14 @@ int codegen_visitor::visit(if_else_node* node)
         return 1;
     Value* else_expr = impl->pop_value();
     impl->builder.CreateBr(merg_block);
-    else_block = impl->builder.GetInsertBlock(); // Codegen of 'else' can change the current block, update "else" block for the PHI.
+    BasicBlock* phi_pred_else = impl->builder.GetInsertBlock();
 
     // Emit value in "merge" block.
     function->getBasicBlockList().push_back(merg_block);
     impl->builder.SetInsertPoint(merg_block);
-    PHINode* phi = impl->builder.CreatePHI(Type::getDoubleTy(impl->context), 2, "iftmp");
-    phi->addIncoming(then_expr, then_block);
-    phi->addIncoming(else_expr, else_block);
+    PHINode* phi = impl->builder.CreatePHI(Type::getDoubleTy(impl->context), 2, "if_phi");
+    phi->addIncoming(then_expr, phi_pred_then);
+    phi->addIncoming(else_expr, phi_pred_else);
 
     impl->push_value(phi);
     return 0;
@@ -356,15 +369,45 @@ int codegen_visitor::visit(for_loop_node* node)
 {
     Function* function = impl->builder.GetInsertBlock()->getParent();
 
+    BasicBlock* cond_block = BasicBlock::Create(impl->context, "for-cond"); // loop condition
+    BasicBlock* loop_block = BasicBlock::Create(impl->context, "for-loop"); // loop body + step
+    BasicBlock* next_block = BasicBlock::Create(impl->context, "for-term"); // where loop terminates
+
     // Emit "init" value.
     if (node->init->accept(this) != 0)
         return 1;
     Value* init = impl->pop_value();
+    impl->builder.CreateBr(cond_block);
 
-    BasicBlock* prev_block = impl->builder.GetInsertBlock();
-    BasicBlock* loop_block = BasicBlock::Create(impl->context, "loop", function);
-    
-    // Insert an explicit fall through from the current block to "loop" block.
-    impl->builder.CreateBr(loop_block);
+    //impl->builder.CreateBr(loop_block);
+    //impl->builder.SetInsertPoint(loop_block);
+    //PHINode* phi = impl->builder.CreatePHI(Type::getDoubleTy(impl->context), 2, "fortmp");
+    //phi->addIncoming(init, prev_block);
+
+    // Emit "condition" value
+    function->getBasicBlockList().push_back(cond_block);
+    impl->builder.SetInsertPoint(cond_block);
+    if (node->cond->accept(this) != 0)
+        return 1;
+    Value* condition = impl->pop_value();
+    condition = impl->builder.CreateFCmpONE(condition, ConstantFP::get(impl->context, APFloat(0.0)), "for_cond");
+    impl->builder.CreateCondBr(condition, loop_block, next_block);
+
+    // Emit "loop" and "step" values
+    function->getBasicBlockList().push_back(loop_block);
+    impl->builder.SetInsertPoint(loop_block);
+    if (node->expr->accept(this) != 0)
+        return 1;
+    Value* loop = impl->pop_value();
+    if (node->step->accept(this) != 0)
+        return 1;
+    impl->pop_value();
+    impl->builder.CreateBr(cond_block);
+
+    // Terminate the loop
+    function->getBasicBlockList().push_back(next_block);
+    impl->builder.SetInsertPoint(next_block);
+
+    impl->push_value(loop);
     return 0;
 }
