@@ -64,7 +64,7 @@ struct codegen_visitor::codegen_impl
 
     // customized info
     std::vector<Value*> value_stack;
-    std::unordered_map<std::string, Value*> value_table;
+    std::unordered_map<std::string, AllocaInst*> value_table;
 };
 
 codegen_visitor::codegen_visitor(const char* source_filename)
@@ -128,7 +128,7 @@ int codegen_visitor::visit(variable_node* node)
         return 1;
     }
 
-    impl->push_value(iter->second);
+    impl->push_value(impl->builder.CreateLoad(iter->second)); // load from var's address
     return 0;
 }
 
@@ -217,9 +217,9 @@ int codegen_visitor::visit(function_declaration_node* node)
     if (!function) return 1;
         
     auto* child = first(node->arguments);
-    for (Argument& arg : function->args())
+    for (Argument& argument : function->args())
     {
-        arg.setName(data(child)->name);
+        argument.setName(data(child)->name);
         child = next(child);
     }
 
@@ -249,8 +249,14 @@ int codegen_visitor::visit(function_definition_node* node)
 
     // Record the function arguments in the NamedValues map.
     impl->value_table.clear();
-    for (Argument& arg : function->args())
-        impl->value_table[arg.getName()] = &arg;
+
+    for (Argument& argument : function->args())
+    {
+        //impl->value_table[argument.getName()] = &argument;
+        AllocaInst* address = impl->builder.CreateAlloca(Type::getDoubleTy(impl->context), nullptr, argument.getName());
+        impl->value_table[argument.getName()] = address;
+        impl->builder.CreateStore(&argument, address);
+    }
 
     if (node->definition->accept(this) != 0)
     {
@@ -280,26 +286,45 @@ int codegen_visitor::visit(block_node* node)
 
 int codegen_visitor::visit(assignment_node* node)
 {
+    // Evaluate RHS.
+    if (node->expression->accept(this) != 0)
+        return 1;
+    Value* rhs = impl->pop_value();
+
+    // Emit LHS i.e. the named variable.
+    auto iter = impl->value_table.find(std::string(node->variable));
+    AllocaInst* address {nullptr};
+
+    if (iter == impl->value_table.end())
+    {
+        address = impl->builder.CreateAlloca(Type::getDoubleTy(impl->context), nullptr, node->variable);
+        impl->value_table[std::string(node->variable)] = address;
+    }
+    else address = iter->second;
+
+    impl->builder.CreateStore(rhs, address);
+    impl->push_value(rhs); // return a value instead of address
     return 0;
 }
 
 int codegen_visitor::visit(if_else_node* node)
 {
-    if (node->condition->accept(this) != 0)
-        return 1;
-    Value* condition = impl->pop_value();
-
-    // Convert condition to a bool by comparing non-equal to 0.0.
-    condition = impl->builder.CreateFCmpONE(condition, ConstantFP::get(impl->context, APFloat(0.0)), "cond");
     Function* function = impl->builder.GetInsertBlock()->getParent();
 
-    // Create blocks for the "then" and "else" cases. Insert the "then" block at the end of the function.
-    BasicBlock* then_block = BasicBlock::Create(impl->context, "then", function);
+    // Emit "condition" value
+    if (node->condition->accept(this) != 0)
+        return 1;
+    Value* condition = impl->pop_value(); // Convert condition to a bool by comparing non-equal to 0.0.
+    condition = impl->builder.CreateFCmpONE(condition, ConstantFP::get(impl->context, APFloat(0.0)), "cond");
+
+    // Create blocks for the "then" and "else" cases.
+    BasicBlock* then_block = BasicBlock::Create(impl->context, "then");
     BasicBlock* else_block = BasicBlock::Create(impl->context, "else");
     BasicBlock* merg_block = BasicBlock::Create(impl->context, "merge");
     impl->builder.CreateCondBr(condition, then_block, else_block);
 
-    // Emit "then" value.
+    // Emit value in "then" block.
+    function->getBasicBlockList().push_back(then_block); // Insert "then" block at the end of the function.
     impl->builder.SetInsertPoint(then_block);
     if (node->then_expr->accept(this) != 0)
         return 1;
@@ -307,7 +332,7 @@ int codegen_visitor::visit(if_else_node* node)
     impl->builder.CreateBr(merg_block);
     then_block = impl->builder.GetInsertBlock(); // Codegen of 'then' can change the current block, update "then" block for the PHI.
 
-    // Emit "else" block.
+    // Emit value in "else" block.
     function->getBasicBlockList().push_back(else_block);
     impl->builder.SetInsertPoint(else_block);
     if (node->else_expr->accept(this) != 0)
@@ -316,7 +341,7 @@ int codegen_visitor::visit(if_else_node* node)
     impl->builder.CreateBr(merg_block);
     else_block = impl->builder.GetInsertBlock(); // Codegen of 'else' can change the current block, update "else" block for the PHI.
 
-    // Emit "merge" block.
+    // Emit value in "merge" block.
     function->getBasicBlockList().push_back(merg_block);
     impl->builder.SetInsertPoint(merg_block);
     PHINode* phi = impl->builder.CreatePHI(Type::getDoubleTy(impl->context), 2, "iftmp");
@@ -329,5 +354,17 @@ int codegen_visitor::visit(if_else_node* node)
 
 int codegen_visitor::visit(for_loop_node* node)
 {
+    Function* function = impl->builder.GetInsertBlock()->getParent();
+
+    // Emit "init" value.
+    if (node->init->accept(this) != 0)
+        return 1;
+    Value* init = impl->pop_value();
+
+    BasicBlock* prev_block = impl->builder.GetInsertBlock();
+    BasicBlock* loop_block = BasicBlock::Create(impl->context, "loop", function);
+    
+    // Insert an explicit fall through from the current block to "loop" block.
+    impl->builder.CreateBr(loop_block);
     return 0;
 }
