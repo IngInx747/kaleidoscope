@@ -389,11 +389,6 @@ int codegen_visitor::visit(for_loop_node* node)
     Value* init = impl->pop_value();
     impl->builder.CreateBr(cond_block);
 
-    //impl->builder.CreateBr(loop_block);
-    //impl->builder.SetInsertPoint(loop_block);
-    //PHINode* phi = impl->builder.CreatePHI(Type::getDoubleTy(impl->context), 2, "fortmp");
-    //phi->addIncoming(init, prev_block);
-
     // Emit "condition" value
     function->getBasicBlockList().push_back(cond_block);
     impl->builder.SetInsertPoint(cond_block);
