@@ -170,7 +170,11 @@ int codegen_visitor::visit(binary_expression_node* node)
         valrep = impl->builder.CreateFCmpUGT(lval, rval, "cmpgttmp");
         valrep = impl->builder.CreateUIToFP(valrep, Type::getDoubleTy(impl->context), "booltmp"); // Convert bool 0/1 to double 0.0 or 1.0
         break;
-    case '=':
+    case '|':
+        // TODO
+        break;
+    case '&':
+        // TODO
         break;
     default:
         fprintf(stderr, "[ERROR] Invalid operation \"%c\".\n", node->operation);
