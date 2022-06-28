@@ -21,6 +21,7 @@ SRCS= $(YSRC) $(LSRC) \
 	utility.cc \
 	main.cc \
 	print_json_visitor.cc \
+	dealloc_visitor.cc \
 	codegen_visitor.cc
 
 HEADERS= $(YHEADER) \
@@ -29,6 +30,7 @@ HEADERS= $(YHEADER) \
 	utility.cc \
 	main.hh \
 	print_json_visitor.hh \
+	dealloc_visitor.hh \
 	codegen_visitor.hh
 
 OBJECTS= $(SRCS:.cc=.o)

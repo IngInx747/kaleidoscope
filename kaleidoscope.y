@@ -12,8 +12,10 @@
 #include "utility.hh"
 #include "visitor.hh"
 #include "kal.parser.gen.hh"
-void yyerror (char const *);
+#include "dealloc_visitor.hh"
 int yylex ();
+void yyerror (char const *);
+static top_level_node root;
 }
 
 %token EXTERN "extern"
@@ -39,7 +41,6 @@ int yylex ();
 %type <decl> declaration
 %type <nlist> expressions
 %type <vlist> arguments
-%type <node> command
 
 %right  '='
 %left   '>' '<';
@@ -52,8 +53,8 @@ int yylex ();
 
 program: program command
   {
-    $2->accept(get_the_visitor());
-    delete $2;
+    root.accept(get_the_visitor());
+    root.accept(get_dealloc_visitor());
   }
   | /* empty */
   {
@@ -63,18 +64,15 @@ program: program command
 
 command: EXTERN declaration ';'
   {
-    $$ = make_top_level_node($2);
+    root.content = $2;
   }
   | DEFINE declaration expression ';'
   {
-    auto* func = make_function_definition_node($2, $3);
-    $$ = make_top_level_node(func);
+    root.content = make_function_definition_node($2, $3);
   }
-  | expression ';'
+  | expression ';' /* anonymous expression */
   {
-    auto* decl = make_function_declaration_node("", nullptr);
-    auto* func = make_function_definition_node(decl, $1);
-    $$ = make_top_level_node(func);
+    root.content = make_function_definition_node(make_function_declaration_node("", nullptr), $1);
   }
   | ERROR ';'
   {

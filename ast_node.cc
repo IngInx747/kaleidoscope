@@ -59,17 +59,17 @@ int for_loop_node::accept(visitor* visitor)
 }
 
 
-top_level_node* make_top_level_node(ast_node* content)
-{
-    top_level_node* node = new top_level_node();
-
-    if (node)
-    {
-        node->content = content;
-    }
-
-    return node;
-}
+//top_level_node* make_top_level_node(ast_node* content)
+//{
+//    top_level_node* node = new top_level_node();
+//
+//    if (node)
+//    {
+//        node->content = content;
+//    }
+//
+//    return node;
+//}
 
 
 number_node* make_number_node(const char* text)
