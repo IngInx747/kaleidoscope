@@ -2,10 +2,17 @@
 { x=y=z=1, 1+x-y*z };
 
 # If-else test
-def NOT(x)
-    if x then 0
-    else 1
+extern foo();
+extern bar();
+
+def A(x)
+    if x then
+        foo()
+    else
+        bar()
 ;
+
+def NOT(x) if x then 0 else 1;
 
 NOT(0);
 NOT(1);
