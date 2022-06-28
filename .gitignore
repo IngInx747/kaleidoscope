@@ -3,8 +3,9 @@ kcc
 
 # Object
 *.o
-*.so
 *.a
+*.so
+*.out
 
 # Output
 *.ll
