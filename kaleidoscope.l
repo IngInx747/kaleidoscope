@@ -35,9 +35,10 @@ COMMENT         [#].*$
 
 {OPERATOR}      { return yytext[0]; }
 
-{WHITESPACE}    |
+{WHITESPACE}    {}
 {COMMENT}       {}
-{NEWLINE}       { ++yylineno; }
+{NEWLINE}       {} /* yylineno increments automatically */
+
 <<EOF>>         { yyterminate(); }
 .               { yylval.str = "Unexpected token"; return (ERROR); }
 }
