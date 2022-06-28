@@ -1,16 +1,16 @@
-extern foo();
-extern bar();
+# Assignment and block test
+{ x=y=z=1, 1+x-y*z };
 
-def A(x)
-    if x then
-        foo()
-    else
-        bar()
+# If-else test
+def NOT(x)
+    if x then 0
+    else 1
 ;
 
-A(0);
-A(1);
+NOT(0);
+NOT(1);
 
+# For-loop test
 def SUM(y)
 {
     s = 0,
