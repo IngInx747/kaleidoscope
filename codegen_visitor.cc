@@ -13,17 +13,21 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Support/TargetRegistry.h> // llvm-10
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
 
+#define OUTPUT_IR
 #define FUNCTION_OPTIMIZATION
+#define GENERATE_OBJECT
 
 using namespace llvm;
 
 
-static void dump(Value* value)
-{
-    value->print(outs());
-    std::cout << std::endl;
-}
+// Generate target's object code
+static int generate_target_code(Module& module, std::string& output_filename);
 
 
 struct codegen_visitor::codegen_impl
@@ -34,6 +38,7 @@ struct codegen_visitor::codegen_impl
     module("kaleidoscope", context),
     FPM(&module)
     {
+#ifdef FUNCTION_OPTIMIZATION
         // Promote allocas to registers.
         FPM.add(createPromoteMemoryToRegisterPass());
         // Do simple "peephole" optimizations and bit-twiddling optzns.
@@ -45,6 +50,7 @@ struct codegen_visitor::codegen_impl
         // Simplify the control flow graph (deleting unreachable blocks, etc).
         FPM.add(createCFGSimplificationPass());
         FPM.doInitialization();
+#endif
     }
 
     void push_value(Value* value)
@@ -72,6 +78,7 @@ struct codegen_visitor::codegen_impl
     std::unordered_map<std::string, AllocaInst*> value_table;
 };
 
+
 codegen_visitor::codegen_visitor(const char* source_filename)
 {
     if (!impl)
@@ -92,15 +99,24 @@ codegen_visitor::~codegen_visitor()
 
 void codegen_visitor::initialize()
 {
+    if (impl)
+    {
+        impl->value_stack.clear();
+        impl->value_table.clear();
+    }
 }
 
 void codegen_visitor::terminate()
 {
     if (impl)
     {
-        impl->value_stack.clear();
-        impl->value_table.clear();
+#ifdef OUTPUT_IR
         impl->module.print(outs(), nullptr);
+#endif
+#ifdef GENERATE_OBJECT
+        std::string output_filename = impl->module.getSourceFileName() + ".o";
+        generate_target_code(impl->module, output_filename);
+#endif
     }
 }
 
@@ -108,11 +124,14 @@ int codegen_visitor::visit(top_level_node* node)
 {
     if (node->content->accept(this) != 0)
         return 1;
-
     Value* content = impl->pop_value();
-    impl->value_stack.clear();
 
-    dump(content); // dump info
+#ifdef OUTPUT_IR
+    content->print(outs()); // dump info
+    std::cout << std::endl;
+#endif
+
+    impl->value_stack.clear();
     return 0;
 }
 
@@ -414,5 +433,58 @@ int codegen_visitor::visit(for_loop_node* node)
     impl->builder.SetInsertPoint(next_block);
 
     impl->push_value(loop);
+    return 0;
+}
+
+
+static int generate_target_code(Module& module, std::string& output_filename)
+{
+    static int _is_initialized = 0;
+
+    if (!_is_initialized)
+    {
+        // Initialize the target registry etc.
+        InitializeAllTargetInfos();
+        InitializeAllTargets();
+        InitializeAllTargetMCs();
+        InitializeAllAsmParsers();
+        InitializeAllAsmPrinters();
+        _is_initialized = 1;
+    }
+
+    auto target_triple = sys::getDefaultTargetTriple();
+    module.setTargetTriple(target_triple);
+
+    std::string error;
+    auto target = TargetRegistry::lookupTarget(target_triple, error);
+    if (!target)
+    {
+        errs() << error;
+        return 1;
+    }
+
+    TargetOptions opt;
+    auto RM = Optional<Reloc::Model>();
+    auto target_machine = target->createTargetMachine(target_triple, "generic", "", opt, RM);
+    module.setDataLayout(target_machine->createDataLayout());
+
+    std::error_code error_code;
+    raw_fd_ostream dest(output_filename, error_code, sys::fs::OF_None);
+    if (error_code)
+    {
+        errs() << "Could not open file: " << error_code.message() << "\n";
+        return 1;
+    }
+
+    legacy::PassManager pass;
+    if (target_machine->addPassesToEmitFile(pass, dest, nullptr, CGFT_ObjectFile))
+    {
+        errs() << "The Target Machine can't emit a file of this type" << "\n";
+        return 1;
+    }
+
+    pass.run(module);
+    dest.flush();
+
     return 0;
 }
