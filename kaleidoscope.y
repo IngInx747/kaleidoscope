@@ -43,6 +43,8 @@ static top_level_node root;
 %type <vlist> arguments
 
 %right  '='
+%left   '|'
+%left   '&'
 %left   '>' '<';
 %left   '+' '-';
 %left   '*' '/';
@@ -128,6 +130,14 @@ expression: '(' expression ')'
   | expression '<' expression
   {
     $$ = make_binary_expression_node($1, $3, '<');
+  }
+  | expression '|' expression
+  {
+    $$ = make_binary_expression_node($1, $3, '|');
+  }
+  | expression '&' expression
+  {
+    $$ = make_binary_expression_node($1, $3, '&');
   }
   | SYMBOL '(' expressions ')'
   {

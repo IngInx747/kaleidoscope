@@ -182,18 +182,24 @@ int codegen_visitor::visit(binary_expression_node* node)
         valrep = impl->builder.CreateFDiv(lval, rval, "divtmp");
         break;
     case '<':
-        valrep = impl->builder.CreateFCmpULT(lval, rval, "cmplttmp");
+        valrep = impl->builder.CreateFCmpULT(lval, rval, "lttmp");
         valrep = impl->builder.CreateUIToFP(valrep, Type::getDoubleTy(impl->context), "booltmp"); // Convert bool 0/1 to double 0.0 or 1.0
         break;
     case '>':
-        valrep = impl->builder.CreateFCmpUGT(lval, rval, "cmpgttmp");
+        valrep = impl->builder.CreateFCmpUGT(lval, rval, "gttmp");
         valrep = impl->builder.CreateUIToFP(valrep, Type::getDoubleTy(impl->context), "booltmp"); // Convert bool 0/1 to double 0.0 or 1.0
         break;
     case '|':
-        // TODO
+        lval = impl->builder.CreateFCmpONE(lval, ConstantFP::get(impl->context, APFloat(0.0)), "neqtmp");
+        rval = impl->builder.CreateFCmpONE(rval, ConstantFP::get(impl->context, APFloat(0.0)), "neqtmp");
+        valrep = impl->builder.CreateOr(lval, rval, "ortmp");
+        valrep = impl->builder.CreateUIToFP(valrep, Type::getDoubleTy(impl->context), "booltmp");
         break;
     case '&':
-        // TODO
+        lval = impl->builder.CreateFCmpONE(lval, ConstantFP::get(impl->context, APFloat(0.0)), "neqtmp");
+        rval = impl->builder.CreateFCmpONE(rval, ConstantFP::get(impl->context, APFloat(0.0)), "neqtmp");
+        valrep = impl->builder.CreateAnd(lval, rval, "andtmp");
+        valrep = impl->builder.CreateUIToFP(valrep, Type::getDoubleTy(impl->context), "booltmp");
         break;
     default:
         fprintf(stderr, "[ERROR] Invalid operation \"%c\".\n", node->operation);
@@ -352,9 +358,9 @@ int codegen_visitor::visit(if_else_node* node)
     Function* function = impl->builder.GetInsertBlock()->getParent();
 
     // Create blocks for the "then" and "else" cases.
-    BasicBlock* then_block = BasicBlock::Create(impl->context, "if-true");
-    BasicBlock* else_block = BasicBlock::Create(impl->context, "if-false");
-    BasicBlock* merg_block = BasicBlock::Create(impl->context, "if-merge");
+    BasicBlock* then_block = BasicBlock::Create(impl->context, "if.true");
+    BasicBlock* else_block = BasicBlock::Create(impl->context, "if.false");
+    BasicBlock* merg_block = BasicBlock::Create(impl->context, "if.merge");
 
     // Emit "condition" value
     if (node->condition->accept(this) != 0)
@@ -398,9 +404,9 @@ int codegen_visitor::visit(for_loop_node* node)
 {
     Function* function = impl->builder.GetInsertBlock()->getParent();
 
-    BasicBlock* cond_block = BasicBlock::Create(impl->context, "for-cond"); // loop condition
-    BasicBlock* loop_block = BasicBlock::Create(impl->context, "for-loop"); // loop body + step
-    BasicBlock* next_block = BasicBlock::Create(impl->context, "for-term"); // where loop terminates
+    BasicBlock* cond_block = BasicBlock::Create(impl->context, "for.cond"); // loop condition
+    BasicBlock* loop_block = BasicBlock::Create(impl->context, "for.loop"); // loop body + step
+    BasicBlock* next_block = BasicBlock::Create(impl->context, "for.term"); // where loop terminates
 
     // Emit "init" value.
     if (node->init->accept(this) != 0)

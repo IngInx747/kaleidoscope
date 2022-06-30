@@ -7,7 +7,7 @@
 %option noyywrap
 %option yylineno
 
-NUMBER          [0-9]+\.?|[0-9]*\.[0-9]+
+NUMBER          \-?([0-9]+\.?|[0-9]*\.[0-9]+)
 SYMBOL          [a-zA-Z_][a-zA-Z0-9_]*
 EXTERN          extern
 DEFINE          def
@@ -15,7 +15,7 @@ IF              if
 THEN            then
 ELSE            else
 FOR             for
-OPERATOR        [\+\-\*\/\=\<\>\(\)\{\};\,]
+OPERATOR        [\+\-\*\/\=\<\>\|\&\(\)\{\};\,]
 WHITESPACE      [\t\r ]
 NEWLINE         \n
 COMMENT         [#].*$
