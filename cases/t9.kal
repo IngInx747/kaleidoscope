@@ -1,0 +1,11 @@
+def fib(x) {
+    a = 1, b = 1, c = 1,
+    for i = 2, i < x, i = i + 1, {
+        c = a + b,
+        a = b,
+        b = c
+    },
+    c
+};
+
+def main() fib(10);

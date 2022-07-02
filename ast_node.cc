@@ -2,6 +2,9 @@
 
 #include "visitor.hh"
 
+extern int yylineno;
+extern int yycolumn;
+
 
 int top_level_node::accept(visitor* visitor)
 {
@@ -59,25 +62,14 @@ int for_loop_node::accept(visitor* visitor)
 }
 
 
-//top_level_node* make_top_level_node(ast_node* content)
-//{
-//    top_level_node* node = new top_level_node();
-//
-//    if (node)
-//    {
-//        node->content = content;
-//    }
-//
-//    return node;
-//}
-
-
 number_node* make_number_node(const char* text)
 {
     number_node* node = new number_node();
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->value = text;
     }
 
@@ -90,6 +82,8 @@ variable_node* make_variable_node(const char* text)
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->name = text;
     }
 
@@ -102,6 +96,8 @@ binary_expression_node* make_binary_expression_node(ast_node* lhs, ast_node* rhs
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->lhs = lhs;
         node->rhs = rhs;
         node->operation = operation;
@@ -116,6 +112,8 @@ call_function_node* make_call_function_node(const char* text, double_linked_list
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->callee = text;
         node->arguments = nodes;
     }
@@ -129,6 +127,8 @@ function_declaration_node* make_function_declaration_node(const char* text, doub
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->name = text;
         node->arguments = nodes;
     }
@@ -142,6 +142,8 @@ function_definition_node* make_function_definition_node(function_declaration_nod
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->declaration = declaration;
         node->definition = definition;
     }
@@ -155,6 +157,8 @@ block_node* make_block_node(double_linked_list_node<ast_node*>* nodes)
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->expressions = nodes;
     }
 
@@ -167,6 +171,8 @@ assignment_node* make_assignment_node(const char* text, ast_node* expression)
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->variable = text;
         node->expression = expression;
     }
@@ -180,6 +186,8 @@ if_else_node* make_if_else_node(ast_node* condition, ast_node* then_expr, ast_no
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->condition = condition;
         node->then_expr = then_expr;
         node->else_expr = else_expr;
@@ -194,6 +202,8 @@ for_loop_node* make_for_loop_node(ast_node* init, ast_node* cond, ast_node* step
 
     if (node)
     {
+        node->row = yylineno;
+        node->col = yycolumn;
         node->init = init;
         node->cond = cond;
         node->step = step;

@@ -2,12 +2,14 @@
 #include <string>
 #include "utility.hh"
 #include "kal.parser.gen.hh"
+#define YY_USER_ACTION (++yycolumn);
+int yycolumn = 1;
 %}
 
 %option noyywrap
 %option yylineno
 
-NUMBER          \-?([0-9]+\.?|[0-9]*\.[0-9]+)
+NUMBER          [0-9]+\.?|[0-9]*\.[0-9]+
 SYMBOL          [a-zA-Z_][a-zA-Z0-9_]*
 EXTERN          extern
 DEFINE          def
@@ -37,7 +39,7 @@ COMMENT         [#].*$
 
 {WHITESPACE}    {}
 {COMMENT}       {}
-{NEWLINE}       {} /* yylineno increments automatically */
+{NEWLINE}       { yycolumn = 1; } /* yylineno increments automatically */
 
 <<EOF>>         { yyterminate(); }
 .               { yylval.str = "Unexpected token"; return (ERROR); }

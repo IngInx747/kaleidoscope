@@ -10,6 +10,9 @@ class visitor;
 struct ast_node
 {
     virtual int accept(visitor*) = 0;
+
+    int row {};
+    int col {};
 };
 
 

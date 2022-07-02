@@ -9,6 +9,7 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/DIBuilder.h>
 #include <llvm/Transforms/Utils.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
@@ -20,8 +21,14 @@
 #include <llvm/Target/TargetOptions.h>
 
 #define OUTPUT_IR
-#define FUNCTION_OPTIMIZATION
+#define FUNCTION_OPT
 #define GENERATE_OBJECT
+#define DEBUG_INFO
+
+#ifdef DEBUG_INFO
+#undef FUNCTION_OPT
+#undef GENERATE_OBJECT
+#endif
 
 using namespace llvm;
 
@@ -36,22 +43,9 @@ struct codegen_visitor::codegen_impl
     context(),
     builder(context),
     module("kaleidoscope", context),
+    debugger(module),
     FPM(&module)
-    {
-#ifdef FUNCTION_OPTIMIZATION
-        // Promote allocas to registers.
-        FPM.add(createPromoteMemoryToRegisterPass());
-        // Do simple "peephole" optimizations and bit-twiddling optzns.
-        FPM.add(createInstructionCombiningPass());
-        // Reassociate expressions.
-        FPM.add(createReassociatePass());
-        // Eliminate Common SubExpressions.
-        FPM.add(createGVNPass());
-        // Simplify the control flow graph (deleting unreachable blocks, etc).
-        FPM.add(createCFGSimplificationPass());
-        FPM.doInitialization();
-#endif
-    }
+    {}
 
     void push_value(Value* value)
     {
@@ -65,6 +59,9 @@ struct codegen_visitor::codegen_impl
         return value;
     }
 
+    void set_debug_location_info(ast_node*);
+    void unset_debug_location_info();
+
     // llvm base
     LLVMContext context;
     IRBuilder<> builder;
@@ -73,10 +70,28 @@ struct codegen_visitor::codegen_impl
     // llvm optimization
     legacy::FunctionPassManager FPM;
 
+    // DWARF debug info
+    DIBuilder debugger;
+    DIScope* current_scope {};
+    DICompileUnit* compile_unit {};
+    DIType* dbltype {};
+
     // customized info
     std::vector<Value*> value_stack;
     std::unordered_map<std::string, AllocaInst*> value_table;
 };
+
+void codegen_visitor::codegen_impl::set_debug_location_info(ast_node* node)
+{
+    DIScope* scope = compile_unit;
+    if (current_scope) scope = current_scope;
+    builder.SetCurrentDebugLocation(DILocation::get(scope->getContext(), node->row, node->col, scope));
+}
+
+void codegen_visitor::codegen_impl::unset_debug_location_info()
+{
+    builder.SetCurrentDebugLocation(DebugLoc());
+}
 
 
 codegen_visitor::codegen_visitor(const char* source_filename)
@@ -85,8 +100,31 @@ codegen_visitor::codegen_visitor(const char* source_filename)
     {
         impl = new codegen_impl();
         impl->module.setSourceFileName(source_filename);
+#ifdef FUNCTION_OPT
+        // Promote allocas to registers.
+        impl->FPM.add(createPromoteMemoryToRegisterPass());
+        // Do simple "peephole" optimizations and bit-twiddling optzns.
+        impl->FPM.add(createInstructionCombiningPass());
+        // Reassociate expressions.
+        impl->FPM.add(createReassociatePass());
+        // Eliminate Common SubExpressions.
+        impl->FPM.add(createGVNPass());
+        // Simplify the control flow graph (deleting unreachable blocks, etc).
+        impl->FPM.add(createCFGSimplificationPass());
+        impl->FPM.doInitialization();
+#endif // FUNCTION_OPT
+#ifdef DEBUG_INFO
+        impl->module.addModuleFlag(llvm::Module::Warning, "kal.debug", 1);
+        impl->dbltype = impl->debugger.createBasicType(
+            "double", 64, dwarf::DW_ATE_float);
+        impl->compile_unit = impl->debugger.createCompileUnit(
+            dwarf::DW_LANG_C, impl->debugger.createFile(source_filename, "."),
+            "kaleidoscope", false, "", 0);
+        impl->debugger.finalize();
+#endif // DEBUG_INFO
     }
 }
+
 
 codegen_visitor::~codegen_visitor()
 {
@@ -114,11 +152,13 @@ void codegen_visitor::terminate()
         impl->module.print(outs(), nullptr);
 #endif
 #ifdef GENERATE_OBJECT
+        if (impl->module.getSourceFileName().empty()) return;
         std::string output_filename = impl->module.getSourceFileName() + ".o";
         generate_target_code(impl->module, output_filename);
 #endif
     }
 }
+
 
 int codegen_visitor::visit(top_level_node* node)
 {
@@ -127,8 +167,10 @@ int codegen_visitor::visit(top_level_node* node)
     Value* content = impl->pop_value();
 
 #ifdef OUTPUT_IR
+#ifndef DEBUG_INFO
     content->print(outs()); // dump info
     std::cout << std::endl;
+#endif
 #endif
 
     impl->value_stack.clear();
@@ -138,6 +180,11 @@ int codegen_visitor::visit(top_level_node* node)
 int codegen_visitor::visit(number_node* node)
 {
     double dvalue = std::stod(std::string(node->value));
+
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node);
+#endif
+
     impl->push_value(ConstantFP::get(impl->context, APFloat(dvalue)));
     return 0;
 }
@@ -151,6 +198,10 @@ int codegen_visitor::visit(variable_node* node)
         fprintf(stderr, "[ERROR] Unknown variable \"%s\".\n", node->name);
         return 1;
     }
+
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node);
+#endif
 
     impl->push_value(impl->builder.CreateLoad(iter->second)); // load from var's address
     return 0;
@@ -207,8 +258,11 @@ int codegen_visitor::visit(binary_expression_node* node)
 
     if (!valrep) return 1;
 
-    impl->push_value(valrep);
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node);
+#endif
 
+    impl->push_value(valrep);
     return 0;
 }
 
@@ -237,6 +291,10 @@ int codegen_visitor::visit(call_function_node* node)
         arguments.push_back(impl->pop_value());
     std::reverse(arguments.begin(), arguments.end());
 
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node);
+#endif
+
     impl->push_value(impl->builder.CreateCall(callee, arguments, "calltmp"));
     return 0;
 }
@@ -256,6 +314,9 @@ int codegen_visitor::visit(function_declaration_node* node)
         argument.setName(data(child)->name);
         child = next(child);
     }
+
+#ifdef DEBUG_INFO
+#endif
 
     impl->push_value(function);
     return 0;
@@ -292,6 +353,35 @@ int codegen_visitor::visit(function_definition_node* node)
         impl->builder.CreateStore(&argument, address);
     }
 
+#ifdef DEBUG_INFO
+    // Create a subprogram DIE for this function.
+    unsigned int lineno = node->row;
+    DIFile* file_unit = impl->debugger.createFile(
+        impl->compile_unit->getFilename(), impl->compile_unit->getDirectory());
+    DIType* dbltype = impl->dbltype;
+    SmallVector<Metadata*, 8> dbltypes;
+    dbltypes.push_back(dbltype); // Add the result type.
+    for (int i = 0; i < function->arg_size(); ++i)
+        dbltypes.push_back(dbltype);
+    DISubroutineType* subrtype = impl->debugger.createSubroutineType(
+        impl->debugger.getOrCreateTypeArray(dbltypes));
+    DISubprogram* subprog = impl->debugger.createFunction(
+        file_unit, node->declaration->name, StringRef(), file_unit, lineno,
+        subrtype, lineno, DINode::FlagPrototyped, DISubprogram::SPFlagDefinition);
+    function->setSubprogram(subprog);
+    impl->current_scope = subprog;
+    impl->unset_debug_location_info();
+    for (int i = 0; i < function->arg_size(); ++i)
+    {
+        AllocaInst* address = impl->value_table[function->getArg(i)->getName()];
+        DILocalVariable* localvar = impl->debugger.createParameterVariable(
+            subprog, function->getArg(i)->getName(), i, file_unit, lineno, dbltype, true);
+        impl->debugger.insertDeclare(address, localvar, impl->debugger.createExpression(),
+            DILocation::get(subprog->getContext(), lineno, 0, subprog), impl->builder.GetInsertBlock());
+    }
+    impl->debugger.finalizeSubprogram(subprog);
+#endif // DEBUG_INFO
+
     if (node->definition->accept(this) != 0)
     {
         function->eraseFromParent(); // Error reading body, remove function.
@@ -303,12 +393,17 @@ int codegen_visitor::visit(function_definition_node* node)
     verifyFunction(*function); // Validate the generated code, checking for consistency.
 
     // Optimize the function(optional)
-#ifdef FUNCTION_OPTIMIZATION
+#ifdef FUNCTION_OPT
     impl->FPM.run(*function);
 #endif
     // Remove the anonymous expression.
     //if (strcmp(node->declaration->name, "") == 0)
     //    function->eraseFromParent();
+
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node->definition);
+    impl->current_scope = impl->compile_unit;
+#endif
 
     impl->push_value(function);
     return 0;
@@ -325,8 +420,11 @@ int codegen_visitor::visit(block_node* node)
         valrep = impl->pop_value();
     }
 
-    impl->push_value(valrep); // return value of the last expression
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node);
+#endif
 
+    impl->push_value(valrep); // return value of the last expression
     return 0;
 }
 
@@ -340,15 +438,18 @@ int codegen_visitor::visit(assignment_node* node)
     // Emit LHS i.e. the named variable.
     auto iter = impl->value_table.find(std::string(node->variable));
     AllocaInst* address {nullptr};
-
     if (iter == impl->value_table.end())
     {
         address = impl->builder.CreateAlloca(Type::getDoubleTy(impl->context), nullptr, node->variable);
         impl->value_table[std::string(node->variable)] = address;
     }
     else address = iter->second;
-
     impl->builder.CreateStore(rhs, address);
+
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node);
+#endif
+
     impl->push_value(rhs); // return a value instead of address
     return 0;
 }
@@ -396,6 +497,10 @@ int codegen_visitor::visit(if_else_node* node)
     phi->addIncoming(then_expr, phi_pred_then);
     phi->addIncoming(else_expr, phi_pred_else);
 
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node);
+#endif
+
     impl->push_value(phi);
     return 0;
 }
@@ -437,6 +542,10 @@ int codegen_visitor::visit(for_loop_node* node)
     // Terminate the loop
     function->getBasicBlockList().push_back(next_block);
     impl->builder.SetInsertPoint(next_block);
+
+#ifdef DEBUG_INFO
+    impl->set_debug_location_info(node);
+#endif
 
     impl->push_value(loop);
     return 0;

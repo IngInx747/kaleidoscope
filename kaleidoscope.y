@@ -188,6 +188,7 @@ expressions: expressions ',' expression
 void yyerror(const char *errmsg)
 {
   extern int yylineno;
+  extern int yycolumn;
   extern char* yytext;
-  fprintf(stderr, "[ERROR] Token \"%s\" at/near line %d: %s\n", yytext, yylineno, errmsg);
+  fprintf(stderr, "[ERROR] Token \"%s\" at/near (%d, %d): %s\n", yytext, yylineno, yycolumn, errmsg);
 }
