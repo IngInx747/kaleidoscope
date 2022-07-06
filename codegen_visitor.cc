@@ -114,7 +114,13 @@ codegen_visitor::codegen_visitor(const char* source_filename)
         impl->FPM.doInitialization();
 #endif // FUNCTION_OPT
 #ifdef DEBUG_INFO
-        impl->module.addModuleFlag(llvm::Module::Warning, "kal.debug", 1);
+        impl->module.addModuleFlag(
+            llvm::Module::Warning,
+            "Debug Info Version",
+            DEBUG_METADATA_VERSION);
+        impl->module.addModuleFlag(
+            llvm::Module::Warning,
+            "Dwarf Version", 2);
         impl->dbltype = impl->debugger.createBasicType(
             "double", 64, dwarf::DW_ATE_float);
         impl->compile_unit = impl->debugger.createCompileUnit(
@@ -430,6 +436,8 @@ int codegen_visitor::visit(block_node* node)
 
 int codegen_visitor::visit(assignment_node* node)
 {
+    Function* function = impl->builder.GetInsertBlock()->getParent();
+
     // Evaluate RHS.
     if (node->expression->accept(this) != 0)
         return 1;
@@ -440,8 +448,14 @@ int codegen_visitor::visit(assignment_node* node)
     AllocaInst* address {nullptr};
     if (iter == impl->value_table.end())
     {
+        // Save up the current block and make the entry block the current one.
+        BasicBlock* curr_block = impl->builder.GetInsertBlock();
+        impl->builder.SetInsertPoint(&function->getEntryBlock().front());
+        // Allocate variables in the entry block.
         address = impl->builder.CreateAlloca(Type::getDoubleTy(impl->context), nullptr, node->variable);
         impl->value_table[std::string(node->variable)] = address;
+        // Restore the current block
+        impl->builder.SetInsertPoint(curr_block);
     }
     else address = iter->second;
     impl->builder.CreateStore(rhs, address);
