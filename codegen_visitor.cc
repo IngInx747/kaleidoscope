@@ -381,7 +381,7 @@ int codegen_visitor::visit(function_definition_node* node)
     {
         AllocaInst* address = impl->value_table[function->getArg(i)->getName()];
         DILocalVariable* localvar = impl->debugger.createParameterVariable(
-            subprog, function->getArg(i)->getName(), i, file_unit, lineno, dbltype, true);
+            subprog, function->getArg(i)->getName(), i+1, file_unit, lineno, dbltype, true);
         impl->debugger.insertDeclare(address, localvar, impl->debugger.createExpression(),
             DILocation::get(subprog->getContext(), lineno, 0, subprog), impl->builder.GetInsertBlock());
     }
@@ -461,6 +461,14 @@ int codegen_visitor::visit(assignment_node* node)
     impl->builder.CreateStore(rhs, address);
 
 #ifdef DEBUG_INFO
+    unsigned int lineno = node->row, column = node->col;
+    DIFile* file_unit = impl->debugger.createFile(
+        impl->compile_unit->getFilename(), impl->compile_unit->getDirectory());
+    DILocalVariable* localvar = impl->debugger.createAutoVariable(
+        impl->current_scope, node->variable, file_unit, lineno, impl->dbltype);
+    impl->debugger.insertDeclare(address, localvar, impl->debugger.createExpression(),
+        DILocation::get(impl->compile_unit->getContext(), lineno, column, impl->current_scope),
+        impl->builder.GetInsertBlock());
     impl->set_debug_location_info(node);
 #endif
 
